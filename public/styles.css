@@ -1,0 +1,111 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+    overflow: hidden;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+form {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #333;
+    color: #fff;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #555;
+}
+
+#surveyList {
+    list-style: none;
+    padding: 0;
+}
+
+#surveyList li {
+    background: #fff;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-left: 4px solid #333;
+}
+
+.edit-btn, .delete-btn {
+    margin-left: 10px;
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+.delete-btn {
+    background-color: #dc3545;
+}
+
+.delete-btn:hover {
+    background-color: #c82333;
+}
+
+.page-group {
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+
+.components-container {
+    margin-top: 10px;
+}
+
+.component {
+    border: 1px solid #eee;
+    margin-bottom: 10px;
+    padding: 5px;
+}
+
+.add-component-btn, .remove-page-btn, .remove-component-btn, .add-option-btn {
+    margin-top: 5px;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.remove-page-btn {
+    background-color: #f44336;
+}
+
+.dropdown-option {
+    margin-top: 5px;
+    padding: 5px;
+}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Survey</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Create New Survey</h1>
+        <form id="surveyForm">
+            <label for="surveyName">Survey Name:</label>
+            <input type="text" id="surveyName" name="surveyName" required>
+
+            <div id="pagesContainer"></div>
+
+            <button type="button" id="addPage">Add Page</button>
+            <button type="submit">Save Survey</button>
+        </form>
+
+        <h2>Existing Surveys</h2>
+        <ul id="surveyList"></ul>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
