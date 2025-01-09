@@ -117,7 +117,36 @@
             componentDiv.insertBefore(optionInput, componentDiv.querySelector('.add-option-btn'));
         }
 
-        addPageButton.addEventListener('click', addPage);
+        addPageButton.addEventListener('click', () => addPage());
+
+        async function loadSurveyData() {
+            if (!surveyId) {
+                console.error('Survey ID is missing.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/surveys/${surveyId}`);
+                if (response.ok) {
+                    const surveyData = await response.json();
+                    document.getElementById('surveyName').value = surveyData.name;
+                    pageCounter = 0;
+                    pagesContainer.innerHTML = '';
+
+                    if (surveyData.pages && surveyData.pages.length > 0) {
+                        surveyData.pages.forEach(pageData => {
+                            addPage(pageData);
+                        });
+                    } else {
+                        addPage();
+                    }
+                } else {
+                    console.error('Error fetching survey data');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -128,7 +157,7 @@
             for (let i = 0; i < pagesContainer.children.length; i++) {
                 const pageDiv = pagesContainer.children[i];
                 const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
-                const componentsContainer = pageDiv.querySelector(`.components-container`);
+                const componentsContainer = pageDiv.querySelector('.components-container');
                 const components = [];
 
                 for (let j = 0; j < componentsContainer.children.length; j++) {
@@ -166,7 +195,7 @@
 
                 if (response.ok) {
                     alert('Survey updated successfully');
-                    window.location.href = '/create.html'; // Redirect to the survey list
+                    window.location.href = '/create.html';
                 } else {
                     alert('Error updating survey');
                 }
@@ -176,36 +205,7 @@
             }
         });
 
-        // Fetch existing survey data and populate the form
-        async function loadSurveyData() {
-            if (!surveyId) {
-                console.error('Survey ID is missing.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/surveys/${surveyId}`);
-                if (response.ok) {
-                    const surveyData = await response.json();
-                    document.getElementById('surveyName').value = surveyData.name;
-                    pageCounter = 0; // Reset page counter
-                    pagesContainer.innerHTML = ''; // Clear existing pages
-
-                    if (surveyData.pages && surveyData.pages.length > 0) {
-                        surveyData.pages.forEach(pageData => {
-                            addPage(pageData);
-                        });
-                    } else {
-                        addPage(); // Add a default page if none exist
-                    }
-                } else {
-                    console.error('Error fetching survey data');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
+        // Load survey data when the page loads
         loadSurveyData();
     </script>
 </body>

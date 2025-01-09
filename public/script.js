@@ -1,3 +1,4 @@
+// script.js
 const form = document.getElementById('surveyForm');
 const pagesContainer = document.getElementById('pagesContainer');
 const addPageButton = document.getElementById('addPage');
@@ -13,8 +14,7 @@ function addPage() {
         <label>Figma URL:</label>
         <input type="text" name="figmaUrl[]">
 
-        <div class="components-container" id="componentsContainer_page${pageCounter + 1}">
-            </div>
+        <div class="components-container" id="componentsContainer_page${pageCounter + 1}"></div>
 
         <button type="button" class="add-component-btn" data-page="${pageCounter + 1}">Add Component</button>
         <button type="button" class="remove-page-btn">Remove Page</button>
@@ -57,6 +57,7 @@ function addComponent(container) {
             addOptionBtn.style.display = 'inline-block';
         } else {
             addOptionBtn.style.display = 'none';
+            componentDiv.querySelectorAll('.dropdown-option').forEach(option => option.remove());
         }
     });
 
@@ -83,10 +84,10 @@ form.addEventListener('submit', async (event) => {
     const surveyName = document.getElementById('surveyName').value;
     const pages = [];
 
-    for (let i = 0; i < pageCounter; i++) {
+    for (let i = 0; i < pagesContainer.children.length; i++) {
         const pageDiv = pagesContainer.children[i];
         const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
-        const componentsContainer = pageDiv.querySelector(`#componentsContainer_page${i + 1}`);
+        const componentsContainer = pageDiv.querySelector(`.components-container`);
         const components = [];
 
         for (let j = 0; j < componentsContainer.children.length; j++) {
@@ -124,7 +125,7 @@ form.addEventListener('submit', async (event) => {
 
         if (response.ok) {
             const newSurvey = await response.json();
-            alert(`Survey created with ID: ${newSurvey.id} and unique URL: ${newSurvey.uniqueUrl}`);
+            alert('Survey created successfully!');
             form.reset();
             pagesContainer.innerHTML = '';
             pageCounter = 0;
@@ -138,29 +139,26 @@ form.addEventListener('submit', async (event) => {
     }
 });
 
-
 async function loadSurveys() {
     try {
         const response = await fetch('/surveys');
         if (response.ok) {
             const surveys = await response.json();
-            surveyList.innerHTML = ''; // Clear existing list
+            surveyList.innerHTML = '';
             surveys.forEach(survey => {
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
                     ${survey.name} - <a href="/survey/${survey.uniqueUrl}" target="_blank">View</a>
-                    <button class="edit-btn" data-id="${survey.id}">Edit</button>
-                    <button class="delete-btn" data-id="${survey.id}">Delete</button>
+                    <button class="edit-btn" data-id="${survey._id}">Edit</button>
+                    <button class="delete-btn" data-id="${survey._id}">Delete</button>
                 `;
                 surveyList.appendChild(listItem);
 
-                // Add event listeners for edit and delete buttons
                 listItem.querySelector('.edit-btn').addEventListener('click', () => {
-                    // Redirect to the edit page with the survey ID
-                    window.location.href = `/edit.html?id=${survey.id}`;
+                    window.location.href = `/edit.html?id=${survey._id}`;
                 });
                 listItem.querySelector('.delete-btn').addEventListener('click', () => {
-                    deleteSurvey(survey.id);
+                    deleteSurvey(survey._id);
                 });
             });
         } else {
@@ -172,22 +170,23 @@ async function loadSurveys() {
 }
 
 async function deleteSurvey(surveyId) {
-    try {
-        const response = await fetch(`/surveys/${surveyId}`, {
-            method: 'DELETE'
-        });
+    if (confirm('Are you sure you want to delete this survey?')) {
+        try {
+            const response = await fetch(`/surveys/${surveyId}`, {
+                method: 'DELETE'
+            });
 
-        if (response.ok) {
-            alert('Survey deleted successfully');
-            loadSurveys(); // Reload the surveys list
-        } else {
+            if (response.ok) {
+                alert('Survey deleted successfully');
+                loadSurveys();
+            } else {
+                alert('Error deleting survey');
+            }
+        } catch (error) {
+            console.error('Error:', error);
             alert('Error deleting survey');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error deleting survey');
     }
 }
 
-// Initial load of surveys
 loadSurveys();
