@@ -231,3 +231,98 @@ button:disabled {
         gap: 1rem;
     }
 }
+
+/* Add these new styles to your existing styles.css */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.create-btn {
+    background-color: #10b981;
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.create-btn:hover {
+    background-color: #059669;
+}
+
+.survey-info {
+    flex: 1;
+}
+
+.survey-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.survey-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.view-btn {
+    background-color: #6366f1;
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+}
+
+.view-btn:hover {
+    background-color: #4f46e5;
+}
+
+#surveyList {
+    margin-top: 2rem;
+}
+
+#surveyList li {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.edit-btn, .delete-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.edit-btn {
+    background-color: #3b82f6;
+}
+
+.edit-btn:hover {
+    background-color: #2563eb;
+}
+
+.delete-btn {
+    background-color: #ef4444;
+}
+
+.delete-btn:hover {
+    background-color: #dc2626;
+}

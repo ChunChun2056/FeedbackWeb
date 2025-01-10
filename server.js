@@ -136,7 +136,7 @@ app.delete('/surveys/:id', async (req, res) => {
 
 
 app.get('/survey/:uniqueUrl', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'survey.html'));  // Changed from index.html
 });
 
 app.get('/s/:uniqueUrl', async (req, res) => {

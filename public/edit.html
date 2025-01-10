@@ -1,212 +1,243 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Edit Survey</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <h1>Edit Survey</h1>
-        <form id="editSurveyForm">
-            <label for="surveyName">Survey Name:</label>
-            <input type="text" id="surveyName" name="surveyName" required>
+      <h1>Edit Survey</h1>
+      <form id="editSurveyForm">
+        <label for="surveyName">Survey Name:</label>
+        <input type="text" id="surveyName" name="surveyName" required />
 
-            <div id="pagesContainer"></div>
+        <div id="pagesContainer"></div>
 
-            <button type="button" id="addPage">Add Page</button>
-            <button type="submit">Save Changes</button>
-        </form>
+        <button type="button" id="addPage">Add Page</button>
+        <button type="submit">Save Changes</button>
+      </form>
     </div>
 
     <script>
-        const form = document.getElementById('editSurveyForm');
-        const pagesContainer = document.getElementById('pagesContainer');
-        const addPageButton = document.getElementById('addPage');
-        const surveyId = new URLSearchParams(window.location.search).get('id');
+      const form = document.getElementById("editSurveyForm");
+      const pagesContainer = document.getElementById("pagesContainer");
+      const addPageButton = document.getElementById("addPage");
+      const surveyId = new URLSearchParams(window.location.search).get("id");
 
-        let pageCounter = 0;
+      let pageCounter = 0;
 
-        function addPage(pageData) {
-            const pageDiv = document.createElement('div');
-            pageDiv.classList.add('page-group');
-            pageDiv.innerHTML = `
-                <h3>Page ${pageCounter + 1}</h3>
-                <label>Figma URL:</label>
-                <input type="text" name="figmaUrl[]" value="${pageData && pageData.figmaUrl ? pageData.figmaUrl : ''}">
+      function addPage(pageData) {
+        const pageDiv = document.createElement("div");
+        pageDiv.classList.add("page-group");
+        pageDiv.innerHTML = `
+                <h3>Page ${pageCounter + 1}</h3>
+    <label>Figma URL:</label>
+    <input type="text" name="figmaUrl[]" value="${pageData && pageData.figmaUrl ? pageData.figmaUrl : ''}">
 
-                <div class="components-container" id="componentsContainer_page${pageCounter + 1}"></div>
+                <div class="components-container" id="componentsContainer_page${
+          pageCounter + 1
+        }"></div>
 
-                <button type="button" class="add-component-btn" data-page="${pageCounter + 1}">Add Component</button>
-                <button type="button" class="remove-page-btn">Remove Page</button>
-            `;
-            pagesContainer.appendChild(pageDiv);
+                <button type="button" class="add-component-btn" data-page="${
+          pageCounter + 1
+        }">Add Component</button>
+                <button type="button" class="remove-page-btn">Remove Page</button>
+            `;
+        pagesContainer.appendChild(pageDiv);
 
-            const componentsContainer = pageDiv.querySelector(`#componentsContainer_page${pageCounter + 1}`);
-            const addComponentBtn = pageDiv.querySelector('.add-component-btn');
-            addComponentBtn.addEventListener('click', () => {
-                addComponent(componentsContainer);
-            });
+        const componentsContainer = pageDiv.querySelector(
+          `#componentsContainer_page${pageCounter + 1}`
+        );
+        const addComponentBtn = pageDiv.querySelector(".add-component-btn");
+        addComponentBtn.addEventListener("click", () => {
+          addComponent(componentsContainer);
+        });
 
-            if (pageData && pageData.components) {
-                pageData.components.forEach(componentData => {
-                    addComponent(componentsContainer, componentData);
-                });
-            }
-
-            const removePageBtn = pageDiv.querySelector('.remove-page-btn');
-            removePageBtn.addEventListener('click', () => {
-                pagesContainer.removeChild(pageDiv);
-            });
-
-            pageCounter++;
+        if (pageData && pageData.components) {
+          pageData.components.forEach((componentData) => {
+            addComponent(componentsContainer, componentData);
+          });
         }
 
-        function addComponent(container, componentData) {
-            const componentDiv = document.createElement('div');
-            componentDiv.classList.add('component');
-            componentDiv.innerHTML = `
+        const removePageBtn = pageDiv.querySelector(".remove-page-btn");
+        removePageBtn.addEventListener("click", () => {
+          pagesContainer.removeChild(pageDiv);
+        });
+
+        pageCounter++;
+      }
+
+      function addComponent(container, componentData) {
+        const componentDiv = document.createElement("div");
+        componentDiv.classList.add("component");
+        componentDiv.innerHTML = `
                 <select class="component-type">
                     <option value="input">Input Field</option>
                     <option value="textarea">Text Area</option>
                     <option value="dropdown">Dropdown</option>
                 </select>
+                <input type="text" class="component-label" placeholder="Component heading" value="${
+                  componentData && componentData.label
+                    ? componentData.label
+                    : ""
+                }">
                 <button type="button" class="add-option-btn" style="display: none;">Add Option</button>
                 <button type="button" class="remove-component-btn">Remove Component</button>
             `;
 
-            const componentTypeSelect = componentDiv.querySelector('.component-type');
-            const addOptionBtn = componentDiv.querySelector('.add-option-btn');
-            const removeComponentBtn = componentDiv.querySelector('.remove-component-btn');
+        const componentTypeSelect =
+          componentDiv.querySelector(".component-type");
+        const addOptionBtn = componentDiv.querySelector(".add-option-btn");
+        const removeComponentBtn = componentDiv.querySelector(
+          ".remove-component-btn"
+        );
+        const componentLabelInput =
+          componentDiv.querySelector(".component-label");
 
-            if (componentData) {
-                componentTypeSelect.value = componentData.type;
-                if (componentData.type === 'dropdown') {
-                    addOptionBtn.style.display = 'inline-block';
-                    componentData.options.forEach(optionValue => {
-                        addOption(componentDiv, optionValue);
-                    });
-                }
-            }
-
-            componentTypeSelect.addEventListener('change', () => {
-                if (componentTypeSelect.value === 'dropdown') {
-                    addOptionBtn.style.display = 'inline-block';
-                } else {
-                    addOptionBtn.style.display = 'none';
-                    componentDiv.querySelectorAll('.dropdown-option').forEach(option => option.remove());
-                }
+        if (componentData) {
+          componentTypeSelect.value = componentData.type;
+          componentLabelInput.value = componentData.label || ""; // Set label value
+          if (componentData.type === "dropdown") {
+            addOptionBtn.style.display = "inline-block";
+            componentData.options.forEach((optionValue) => {
+              addOption(componentDiv, optionValue);
             });
-
-            addOptionBtn.addEventListener('click', () => {
-                addOption(componentDiv);
-            });
-
-            removeComponentBtn.addEventListener('click', () => {
-                container.removeChild(componentDiv);
-            });
-
-            container.appendChild(componentDiv);
+          }
         }
 
-        function addOption(componentDiv, optionValue = '') {
-            const optionInput = document.createElement('input');
-            optionInput.type = 'text';
-            optionInput.placeholder = 'Option value';
-            optionInput.classList.add('dropdown-option');
-            optionInput.value = optionValue;
-            componentDiv.insertBefore(optionInput, componentDiv.querySelector('.add-option-btn'));
-        }
-
-        addPageButton.addEventListener('click', () => addPage());
-
-        async function loadSurveyData() {
-            if (!surveyId) {
-                console.error('Survey ID is missing.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/surveys/${surveyId}`);
-                if (response.ok) {
-                    const surveyData = await response.json();
-                    document.getElementById('surveyName').value = surveyData.name;
-                    pageCounter = 0;
-                    pagesContainer.innerHTML = '';
-
-                    if (surveyData.pages && surveyData.pages.length > 0) {
-                        surveyData.pages.forEach(pageData => {
-                            addPage(pageData);
-                        });
-                    } else {
-                        addPage();
-                    }
-                } else {
-                    console.error('Error fetching survey data');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            const surveyName = document.getElementById('surveyName').value;
-            const pages = [];
-
-            for (let i = 0; i < pagesContainer.children.length; i++) {
-                const pageDiv = pagesContainer.children[i];
-                const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
-                const componentsContainer = pageDiv.querySelector('.components-container');
-                const components = [];
-
-                for (let j = 0; j < componentsContainer.children.length; j++) {
-                    const componentDiv = componentsContainer.children[j];
-                    const componentType = componentDiv.querySelector('.component-type').value;
-                    const component = { type: componentType };
-
-                    if (componentType === 'dropdown') {
-                        const optionInputs = componentDiv.querySelectorAll('.dropdown-option');
-                        component.options = Array.from(optionInputs).map(input => input.value);
-                    }
-
-                    components.push(component);
-                }
-
-                pages.push({
-                    figmaUrl,
-                    components
-                });
-            }
-
-            const surveyData = {
-                name: surveyName,
-                pages: pages
-            };
-
-            try {
-                const response = await fetch(`/surveys/${surveyId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(surveyData)
-                });
-
-                if (response.ok) {
-                    alert('Survey updated successfully');
-                    window.location.href = '/create.html';
-                } else {
-                    alert('Error updating survey');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error updating survey');
-            }
+        componentTypeSelect.addEventListener("change", () => {
+          if (componentTypeSelect.value === "dropdown") {
+            addOptionBtn.style.display = "inline-block";
+          } else {
+            addOptionBtn.style.display = "none";
+            componentDiv
+              .querySelectorAll(".dropdown-option")
+              .forEach((option) => option.remove());
+          }
         });
 
-        // Load survey data when the page loads
-        loadSurveyData();
+        addOptionBtn.addEventListener("click", () => {
+          addOption(componentDiv);
+        });
+
+        removeComponentBtn.addEventListener("click", () => {
+          container.removeChild(componentDiv);
+        });
+
+        container.appendChild(componentDiv);
+      }
+
+      function addOption(componentDiv, optionValue = "") {
+        const optionInput = document.createElement("input");
+        optionInput.type = "text";
+        optionInput.placeholder = "Option value";
+        optionInput.classList.add("dropdown-option");
+        optionInput.value = optionValue;
+        componentDiv.insertBefore(
+          optionInput,
+          componentDiv.querySelector(".add-option-btn")
+        );
+      }
+
+      addPageButton.addEventListener("click", () => addPage());
+
+      async function loadSurveyData() {
+        if (!surveyId) {
+          console.error("Survey ID is missing.");
+          return;
+        }
+
+        try {
+          const response = await fetch(`/surveys/${surveyId}`);
+          if (response.ok) {
+            const surveyData = await response.json();
+            document.getElementById("surveyName").value = surveyData.name;
+            pageCounter = 0;
+            pagesContainer.innerHTML = "";
+
+            if (surveyData.pages && surveyData.pages.length > 0) {
+              surveyData.pages.forEach((pageData) => {
+                addPage(pageData);
+              });
+            } else {
+              addPage();
+            }
+          } else {
+            console.error("Error fetching survey data");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const surveyName = document.getElementById("surveyName").value;
+        const pages = [];
+
+        for (let i = 0; i < pagesContainer.children.length; i++) {
+          const pageDiv = pagesContainer.children[i];
+          const figmaUrl = pageDiv.querySelector(
+            'input[name="figmaUrl[]"]'
+          ).value;
+          const componentsContainer = pageDiv.querySelector(
+            ".components-container"
+          );
+          const components = [];
+
+          for (let j = 0; j < componentsContainer.children.length; j++) {
+            const componentDiv = componentsContainer.children[j];
+            const componentType =
+              componentDiv.querySelector(".component-type").value;
+            const componentLabel =
+              componentDiv.querySelector(".component-label").value;
+            const component = { type: componentType, label: componentLabel };
+
+            if (componentType === "dropdown") {
+              const optionInputs =
+                componentDiv.querySelectorAll(".dropdown-option");
+              component.options = Array.from(optionInputs).map(
+                (input) => input.value
+              );
+            }
+
+            components.push(component);
+          }
+
+          pages.push({
+            figmaUrl,
+            components,
+          });
+        }
+
+        const surveyData = {
+          name: surveyName,
+          pages: pages,
+        };
+
+        try {
+          const response = await fetch(`/surveys/${surveyId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(surveyData),
+          });
+
+          if (response.ok) {
+            alert("Survey updated successfully");
+            window.location.href = "/";
+          } else {
+            alert("Error updating survey");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Error updating survey");
+        }
+      }); // Load survey data when the page loads
+
+      loadSurveyData();
     </script>
-</body>
+  </body>
 </html>
