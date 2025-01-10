@@ -9,6 +9,7 @@
         <div class="header">
             <h1>Survey Management</h1>
             <a href="/create.html" class="button create-btn">Create New Survey</a>
+            <button id="logoutBtn">Logout</button>
         </div>
 
         <h2>Existing Surveys</h2>
@@ -77,6 +78,16 @@
                 }
             }
         }
+
+        // Add event listener for logout button
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const response = await fetch('/logout');
+            if (response.ok) {
+                window.location.href = '/login.html';
+            } else {
+                console.error('Logout failed');
+            }
+        });
 
         // Initial load of surveys
         loadSurveys();

@@ -176,11 +176,25 @@ async function loadSurveys() {
           deleteSurvey(surveyId);
         });
       });
+    } else if (response.status === 401) { // Check for unauthorized status
+      window.location.href = '/login.html'; // Redirect to login 
     } else {
       console.error("Error loading surveys");
     }
   } catch (error) {
     console.error("Error:", error);
+  }
+}
+
+// Check if the user is logged in on page load
+async function checkLoginStatus() {
+  try {
+      const response = await fetch('/check-login'); // New endpoint to check login status
+      if (!response.ok) {
+          window.location.href = '/login.html'; // Redirect to login if not logged in
+      }
+  } catch (error) {
+      console.error('Error checking login status:', error);
   }
 }
 
@@ -204,5 +218,8 @@ async function deleteSurvey(surveyId) {
   }
 }
 
-// Initial load of surveys
-loadSurveys();
+if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+  checkLoginStatus();
+  loadSurveys();
+  // ... other code for index.html ...
+}
