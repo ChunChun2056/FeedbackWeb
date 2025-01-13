@@ -16,8 +16,21 @@
         <ul id="surveyList"></ul>
     </div>
 
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Share Survey</h2>
+            <p>Share this URL with participants:</p>
+            <div id="shareUrl" class="url-display"></div>
+            <button class="copy-btn" onclick="copyUrl()">Copy URL</button>
+        </div>
+    </div>
+
     <script>
         const surveyList = document.getElementById("surveyList");
+        const modal = document.getElementById("shareModal");
+        const closeBtn = document.querySelector(".close");
+        const shareUrlDiv = document.getElementById("shareUrl");
 
         async function loadSurveys() {
             try {
@@ -32,7 +45,7 @@
                                 <span class="survey-name">${survey.name}</span>
                             </div>
                             <div class="survey-actions">
-                                <a href="/survey/${survey.uniqueUrl}" target="_blank" class="view-btn">View</a>
+                                <button class="view-btn" onclick="showShareModal('${survey.uniqueUrl}')">View</button>
                                 <button class="edit-btn" data-id="${survey._id}">Edit</button>
                                 <button class="delete-btn" data-id="${survey._id}">Delete</button>
                             </div>
@@ -56,6 +69,25 @@
                 }
             } catch (error) {
                 console.error("Error:", error);
+            }
+        }
+        
+        function showShareModal(uniqueUrl) {
+            const shareableUrl = `${window.location.origin}/survey/${uniqueUrl}`;
+            shareUrlDiv.textContent = shareableUrl;
+            modal.style.display = "block";
+        }
+
+        function copyUrl() {
+            navigator.clipboard.writeText(shareUrlDiv.textContent)
+                .then(() => alert("URL copied to clipboard!"))
+                .catch(err => console.error("Failed to copy URL:", err));
+        }
+
+        closeBtn.onclick = () => modal.style.display = "none";
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = "none";
             }
         }
 
