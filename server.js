@@ -231,6 +231,103 @@ app.get('/s/:uniqueUrl', async (req, res) => {
     }
 });
 
+// Store response
+app.post('/surveys/:id/submit', async (req, res) => {
+    const surveyId = req.params.id;
+    const responseData = {
+        surveyId,
+        timestamp: new Date(),
+        responses: req.body.responses,
+        completed: req.body.completed,
+        version: 1
+    };
+
+    try {
+        await db.collection('responses').insertOne(responseData);
+        res.status(201).json({ message: 'Response recorded' });
+    } catch (error) {
+        handleError(res, error, 'Failed to store response');
+    }
+});
+
+// Get responses for a survey
+app.get('/surveys/:id/responses', requireLogin, async (req, res) => {
+    const surveyId = req.params.id;
+    
+    try {
+        const responses = await db.collection('responses')
+            .find({ surveyId })
+            .sort({ timestamp: -1 })
+            .toArray();
+        res.json(responses);
+    } catch (error) {
+        handleError(res, error, 'Failed to fetch responses');
+    }
+});
+
+// Export responses
+/*app.get('/surveys/:id/responses/export', requireLogin, async (req, res) => {
+    const surveyId = req.params.id;
+    const format = req.query.format || 'csv';
+
+    try {
+        // 1. Fetch survey data (both responses and survey structure)
+        const responses = await db.collection('responses')
+            .find({ surveyId })
+            .sort({ timestamp: -1 })
+            .toArray();
+        const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) }); // Fetch survey structure
+
+        // 2. Format the data
+        const formattedResponses = responses.map(response => {
+            const responseObject = {};
+            response.responses.forEach(page => {
+                page.answers.forEach(answer => {
+                    const component = survey.pages[page.pageIndex].components.find(c => c.type === answer.componentId.split('_')[0]);
+                    const label = component ? component.label : answer.componentId;
+                    responseObject[label] = answer.value;
+                });
+            });
+            return responseObject;
+        });
+
+        // 3. Generate the data based on format
+        let data;
+        switch (format) {
+            case 'csv':
+                // Use a library like json2csv to convert formattedResponses to CSV
+                const { parse } = require('json2csv');
+                data = parse(formattedResponses);
+                res.setHeader('Content-Type', 'text/csv');
+                res.setHeader('Content-Disposition', 'attachment; filename=responses.csv');
+                break;
+            case 'excel':
+                // (Implementation for Excel export using a suitable library)
+                data = convertToExcel(formattedResponses); // Update convertToExcel to handle the new format
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader('Content-Disposition', 'attachment; filename=responses.xlsx');
+                break;
+            case 'pdf':
+                // (Implementation for PDF export using a suitable library)
+                data = convertToPDF(formattedResponses); // Update convertToPDF to handle the new format
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', 'attachment; filename=responses.pdf');
+                break;
+        }
+
+        res.send(data);
+    } catch (error) {
+        handleError(res, error, 'Failed to export responses');
+    }
+});*/
+
+function convertToCSV(responses) {
+    // Implement CSV conversion
+    return 'timestamp,answers\n' + responses.map(r => 
+        `${r.timestamp},${JSON.stringify(r.responses)}`
+    ).join('\n');
+}
+
 app.use((req, res) => {
     console.error(`404 Not Found: ${req.method} ${req.originalUrl}`);
     res.status(404).send('404 Not Found');

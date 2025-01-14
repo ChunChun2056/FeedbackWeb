@@ -45,7 +45,8 @@
                                 <span class="survey-name">${survey.name}</span>
                             </div>
                             <div class="survey-actions">
-                                <button class="view-btn" onclick="showShareModal('${survey.uniqueUrl}')">View</button>
+                                <button class="view-btn" onclick="showShareModal('${survey.uniqueUrl}')">Share</button>
+                                <a href="/responses.html?id=${survey._id}" class="view-btn">View Responses</a>
                                 <button class="edit-btn" data-id="${survey._id}">Edit</button>
                                 <button class="delete-btn" data-id="${survey._id}">Delete</button>
                             </div>

@@ -1,174 +1,218 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Survey</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <div class="container" id="surveyContainer">
-        <div id="pageContent"></div>
-        <div id="navigation">
-            <button id="prevPage" disabled>Previous</button>
-            <button id="nextPage" disabled>Next</button>
-        </div>
+      <div id="pageContent"></div>
+      <div id="navigation">
+        <button id="prevPage" disabled>Previous</button>
+        <button id="nextPage" disabled>Next</button>
+      </div>
     </div>
 
     <script>
-        const surveyContainer = document.getElementById('surveyContainer');
-        const pageContent = document.getElementById('pageContent');
-        const prevPageButton = document.getElementById('prevPage');
-        const nextPageButton = document.getElementById('nextPage');
+      const surveyContainer = document.getElementById("surveyContainer");
+      const pageContent = document.getElementById("pageContent");
+      const prevPageButton = document.getElementById("prevPage");
+      const nextPageButton = document.getElementById("nextPage");
 
-        const uniqueUrl = window.location.pathname.split('/').pop();
-        let currentPage = 0;
-        let surveyData = null;
+      const uniqueUrl = window.location.pathname.split("/").pop();
+      let currentPage = 0;
+      let surveyData = null;
 
-        function getFormData() {
-            const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
-            return formDataString ? JSON.parse(formDataString) : {};
-        }
+      function getFormData() {
+        const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
+        return formDataString ? JSON.parse(formDataString) : {};
+      }
 
-        function setFormData(formData) {
-            sessionStorage.setItem(`formData_${uniqueUrl}`, JSON.stringify(formData));
-        }
+      function setFormData(formData) {
+        sessionStorage.setItem(
+          `formData_${uniqueUrl}`,
+          JSON.stringify(formData)
+        );
+      }
 
-        function clearFormData() {
-            sessionStorage.removeItem(`formData_${uniqueUrl}`);
-        }
+      function clearFormData() {
+        sessionStorage.removeItem(`formData_${uniqueUrl}`);
+      }
 
-        function displayPage(pageIndex) {
-            if (surveyData && pageIndex >= 0 && pageIndex < surveyData.pages.length) {
-                const page = surveyData.pages[pageIndex];
-                pageContent.innerHTML = '';
+      function displayPage(pageIndex) {
+        if (
+          surveyData &&
+          pageIndex >= 0 &&
+          pageIndex < surveyData.pages.length
+        ) {
+          const page = surveyData.pages[pageIndex];
+          pageContent.innerHTML = "";
 
-                if (page.figmaUrl) {
-                    const figmaIframe = document.createElement('iframe');
-                    figmaIframe.src = page.figmaUrl;
-                    figmaIframe.width = "100%";
-                    figmaIframe.height = "500px";
-                    figmaIframe.allowFullscreen = true;
-                    pageContent.appendChild(figmaIframe);
-                }
+          if (page.figmaUrl) {
+            const figmaIframe = document.createElement("iframe");
+            figmaIframe.src = page.figmaUrl;
+            figmaIframe.width = "100%";
+            figmaIframe.height = "500px";
+            figmaIframe.allowFullscreen = true;
+            pageContent.appendChild(figmaIframe);
+          }
 
-                const form = document.createElement('form');
-                form.id = `form_page${pageIndex + 1}`;
+          const form = document.createElement("form");
+          form.id = `form_page${pageIndex + 1}`;
 
-                page.components.forEach(component => {
-                    
-                    if (component.label) {
-                        const label = document.createElement('label');
-                        label.textContent = component.label;
-                        form.appendChild(label);
-                    }
-                    
-                    const inputName = `${component.type}_page${pageIndex + 1}[]`;
-                    let input;
-
-                    if (component.type === 'input') {
-                        
-                        input = document.createElement('input');
-                        input.type = "text";
-                    } else if (component.type === 'textarea') {
-                        
-                        input = document.createElement('textarea');
-                    } else if (component.type === 'dropdown') {
-                        
-                        input = document.createElement('select');
-                        component.options.forEach(optionValue => {
-                            const option = document.createElement('option');
-                            option.value = optionValue;
-                            option.text = optionValue;
-                            input.appendChild(option);
-                        });
-                    }
-
-                    input.name = inputName;
-
-                    // Check if it's a navigation action or a page load/refresh
-                    if (performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
-                        const formData = getFormData();
-                        if (formData[pageIndex] && formData[pageIndex][inputName]) {
-                            input.value = formData[pageIndex][inputName];
-                        }
-                    }
-
-                    input.addEventListener('change', () => {
-                        const currentFormData = getFormData();
-                        if (!currentFormData[pageIndex]) {
-                            currentFormData[pageIndex] = {};
-                        }
-                        currentFormData[pageIndex][inputName] = input.value;
-                        setFormData(currentFormData);
-                    });
-
-                    
-                    form.appendChild(input);
-                });
-
-                pageContent.appendChild(form);
-
-                currentPage = pageIndex;
-                prevPageButton.disabled = currentPage === 0;
-                nextPageButton.disabled = currentPage === surveyData.pages.length - 1;
-                nextPageButton.style.display = currentPage === surveyData.pages.length - 1 ? 'none' : 'inline-block';
-
-                if (currentPage === surveyData.pages.length - 1) {
-                    const submitButton = document.createElement('button');
-                    submitButton.type = "submit";
-                    submitButton.textContent = "Submit Survey";
-                    form.appendChild(submitButton);
-
-                    form.addEventListener('submit', (event) => {
-                        event.preventDefault();
-                        const finalFormData = getFormData();
-                        console.log("Final Form Data:", finalFormData);
-                        // Send finalFormData to your server
-
-                        clearFormData(); // Clear data after submission
-                    });
-                }
+          page.components.forEach((component) => {
+            if (component.label) {
+              const label = document.createElement("label");
+              label.textContent = component.label;
+              form.appendChild(label);
             }
-        }
 
-        // Clear form data only on page refresh
-        window.addEventListener('beforeunload', (event) => {
-            if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
-                clearFormData();
+            const inputName = `${component.type}_page${pageIndex + 1}[]`;
+            let input;
+
+            if (component.type === "input") {
+              input = document.createElement("input");
+              input.type = "text";
+            } else if (component.type === "textarea") {
+              input = document.createElement("textarea");
+            } else if (component.type === "dropdown") {
+              input = document.createElement("select");
+              component.options.forEach((optionValue) => {
+                const option = document.createElement("option");
+                option.value = optionValue;
+                option.text = optionValue;
+                input.appendChild(option);
+              });
             }
-        });
 
-        prevPageButton.addEventListener('click', () => {
-            if (currentPage > 0) {
-                displayPage(currentPage - 1);
+            input.name = inputName;
+
+            // Check if it's a navigation action or a page load/refresh
+            if (
+              performance.navigation.type !== performance.navigation.TYPE_RELOAD
+            ) {
+              const formData = getFormData();
+              if (formData[pageIndex] && formData[pageIndex][inputName]) {
+                input.value = formData[pageIndex][inputName];
+              }
             }
-        });
 
-        nextPageButton.addEventListener('click', () => {
-            if (surveyData && currentPage < surveyData.pages.length - 1) {
-                displayPage(currentPage + 1);
-            }
-        });
-
-        fetch(`/s/${uniqueUrl}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(survey => {
-                surveyData = survey;
-                document.title = surveyData.name || 'Survey';
-                if (surveyData.pages.length > 0) {
-                    displayPage(0);
-                } else {
-                    pageContent.innerHTML = '<p>No pages in this survey.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                pageContent.innerHTML = '<p>Error loading survey.</p>';
+            input.addEventListener("change", () => {
+              const currentFormData = getFormData();
+              if (!currentFormData[pageIndex]) {
+                currentFormData[pageIndex] = {};
+              }
+              currentFormData[pageIndex][inputName] = input.value;
+              setFormData(currentFormData);
             });
+
+            form.appendChild(input);
+          });
+
+          pageContent.appendChild(form);
+
+          currentPage = pageIndex;
+          prevPageButton.disabled = currentPage === 0;
+          nextPageButton.disabled = currentPage === surveyData.pages.length - 1;
+          nextPageButton.style.display =
+            currentPage === surveyData.pages.length - 1
+              ? "none"
+              : "inline-block";
+
+          if (currentPage === surveyData.pages.length - 1) {
+            const submitButton = document.createElement("button");
+            submitButton.type = "submit";
+            submitButton.textContent = "Submit Survey";
+            form.appendChild(submitButton);
+
+            form.addEventListener("submit", async (event) => {
+              event.preventDefault();
+              const finalFormData = getFormData();
+
+              const formattedResponses = Object.entries(finalFormData).map(
+                ([pageIndex, pageData]) => ({
+                  pageIndex: parseInt(pageIndex),
+                  answers: Object.entries(pageData).map(
+                    ([componentId, value]) => ({
+                      componentId,
+                      value,
+                    })
+                  ),
+                })
+              );
+
+              try {
+                const response = await fetch(
+                  `/surveys/${surveyData._id}/submit`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      responses: formattedResponses,
+                      completed: true,
+                    }),
+                  }
+                );
+
+                if (response.ok) {
+                  alert("Survey submitted successfully!");
+                  clearFormData();
+                  window.location.href = "/thank-you.html";
+                } else {
+                  alert("Error submitting survey");
+                }
+              } catch (error) {
+                console.error("Error:", error);
+                alert("Error submitting survey");
+              }
+            });
+          }
+        }
+      }
+
+      // Clear form data only on page refresh
+      window.addEventListener("beforeunload", (event) => {
+        if (
+          performance.navigation.type === performance.navigation.TYPE_RELOAD
+        ) {
+          clearFormData();
+        }
+      });
+
+      prevPageButton.addEventListener("click", () => {
+        if (currentPage > 0) {
+          displayPage(currentPage - 1);
+        }
+      });
+
+      nextPageButton.addEventListener("click", () => {
+        if (surveyData && currentPage < surveyData.pages.length - 1) {
+          displayPage(currentPage + 1);
+        }
+      });
+
+      fetch(`/s/${uniqueUrl}`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((survey) => {
+          surveyData = survey;
+          document.title = surveyData.name || "Survey";
+          if (surveyData.pages.length > 0) {
+            displayPage(0);
+          } else {
+            pageContent.innerHTML = "<p>No pages in this survey.</p>";
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          pageContent.innerHTML = "<p>Error loading survey.</p>";
+        });
     </script>
-</body>
+  </body>
 </html>

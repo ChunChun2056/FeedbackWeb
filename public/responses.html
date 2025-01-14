@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Survey Responses</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .response-grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .response-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .response-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .response-meta {
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .export-options {
+        margin: 1rem 0;
+        display: flex;
+        gap: 1rem;
+      }
+
+      .grid-header {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Survey Responses</h1>
+        <div class="export-options">
+          <button onclick="exportResponses('csv')">Export CSV</button>
+          <button onclick="exportResponses('excel')">Export Excel</button>
+          <button onclick="exportResponses('pdf')">Export PDF</button>
+        </div>
+      </div>
+
+      <div id="responsesList" class="response-grid"></div>
+    </div>
+
+    <script>
+      const surveyId = new URLSearchParams(window.location.search).get("id");
+
+      async function loadResponses() {
+        try {
+          const surveyId = new URLSearchParams(window.location.search).get(
+            "id"
+          );
+          const surveyResponse = await fetch(`/surveys/${surveyId}/responses`);
+          const surveyDataRequest = await fetch(`/surveys/${surveyId}`); // Fetch survey structure
+          if (surveyResponse.ok && surveyDataRequest.ok) {
+            const responses = await surveyResponse.json();
+            const surveyData = await surveyDataRequest.json(); // Parse survey structure
+            displayResponses(responses, surveyData); // Pass survey data to displayResponses
+          } else {
+            console.error("Error fetching responses or survey data");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      function displayResponses(responses, surveyData) {
+        const container = document.getElementById("responsesList");
+        container.innerHTML = "";
+
+        responses.forEach((response) => {
+          const card = document.createElement("div");
+          card.className = "response-card";
+
+          card.innerHTML = `
+                    <div class="response-header">
+                        <div class="response-meta">
+                            Submitted: ${new Date(
+                              response.timestamp
+                            ).toLocaleString()}
+
+                        </div>
+                    </div>
+                    <div class="response-content">
+                        ${formatResponses(response.responses, surveyData)}
+                    </div>
+                        `;
+
+          container.appendChild(card);
+        });
+      }
+
+      function formatResponses(responses, surveyData) {
+        // Include surveyData as an argument
+        return responses
+          .map(
+            (page) => `
+        <div class="response-page">
+            <h3>Page ${page.pageIndex + 1}</h3>
+            ${page.answers
+              .map((answer) => {
+                const component = surveyData.pages[
+                  page.pageIndex
+                ].components.find(
+                  (c) => c.type === answer.componentId.split("_")[0]
+                ); // Find the component by type
+                return `
+                    <div>
+                        <strong>${
+                          component ? component.label : answer.componentId
+                        }:</strong> ${answer.value}
+                    </div>
+                `;
+              })
+              .join("")}
+        </div>
+    `
+          )
+          .join("");
+      }
+
+      async function exportResponses(format) {
+        try {
+          const response = await fetch(
+            `/surveys/${surveyId}/responses/export?format=${format}`
+          );
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `survey-responses.${format}`;
+            a.click();
+          }
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      function checkLoginStatus() {
+        fetch("/check-login")
+          .then((response) => {
+            if (!response.ok) {
+              // Redirect to login if not logged in
+              window.location.href = "/login.html";
+            }
+          })
+          .catch((error) => {
+            console.error("Error checking login status:", error);
+            // Consider redirecting to login on error as well
+            window.location.href = "/login.html";
+          });
+      }
+
+      loadResponses();
+      setInterval(checkLoginStatus, 30000);
+    </script>
+  </body>
+</html>
