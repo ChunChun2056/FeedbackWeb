@@ -16,7 +16,7 @@ const dbName = 'test'; // Replace with your database name
 // Session Middleware
 app.use(
   session({
-    secret: '9hjjaywgksk#sax+!^j3+m9$z8rj(=4suy_t6mm*u(2h*&ocn&', // Replace with a strong secret key
+    secret: '', // Replace with a strong secret key
     resave: false,
     saveUninitialized: false,
     cookie: {
