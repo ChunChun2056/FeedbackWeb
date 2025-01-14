@@ -2,104 +2,179 @@ const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { connectToDatabase, ObjectId } = require('./db');
-const session = require('express-session'); // Add this line
+const session = require('express-session');
+const bcrypt = require('bcrypt');
+const { MongoClient } = require('mongodb');
+const rateLimit = require('express-rate-limit');
 const app = express();
-const port = 3000; // You defined port here
-
-// --- Temporary Admin Credentials (Replace with Database in Production) ---
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'password';
 
 app.use(express.json());
 
+const uri = 'mongodb://localhost:27017'; // Replace with your MongoDB connection string
+const dbName = 'test'; // Replace with your database name
+
 // Session Middleware
-app.use(session({
-    secret: 'your-secret-key', // Replace with a strong secret key
+app.use(
+  session({
+    secret: '9hjjaywgksk#sax+!^j3+m9$z8rj(=4suy_t6mm*u(2h*&ocn&', // Replace with a strong secret key
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Set to true if using HTTPS
-}));
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Set to true if using HTTPS
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60 * 24, // Session expiration time (e.g., 1 day)
+    },
+  })
+);
+
+// Rate limit for login endpoint
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login requests per windowMs
+  message: 'Too many login attempts, please try again later',
+});
+
+app.use('/login', loginLimiter);
 
 let db;
 
-connectToDatabase()
-    .then(database => {
-        db = database;
-        app.listen(port, () => {
-            console.log(`Server listening on port ${port}`);
-        });
-    })
-    .catch(error => {
-        console.error('Error starting server:', error);
-        process.exit(1);
-    });
+// Connect to MongoDB
+MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then((client) => {
+    db = client.db(dbName);
+    console.log('Connected to MongoDB');
+  })
+  .catch((err) => {
+    console.error('Error connecting to MongoDB:', err);
+  });
 
 function handleError(res, error, message = 'An unexpected error occurred') {
-    console.error(message + ':', error);
-    res.status(500).json({ error: message });
+  console.error(message + ':', error);
+  res.status(500).json({ error: message });
 }
 
 // Authentication Middleware
 function requireLogin(req, res, next) {
-    console.log("Session Check:", req.session);
     if (req.session && req.session.authenticated) {
-        console.log("User is authenticated");
-        return next(); // User is authenticated, proceed
+      return next(); // User is authenticated, proceed
     } else {
-        console.log('User is not authenticated, redirecting to login');
-        return res.redirect('/login.html'); // Redirect to login without using status 401
+      // Redirect to the login page if the user is not authenticated
+      return res.redirect('/login.html');
     }
-}
+    }
 
 // Serve the login page
 app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Login Route
-app.post('/login', (req, res) => {
+// Signup route
+app.post('/signup', async (req, res) => {
+  const { username, password } = req.body;
+
+  // Password complexity rules
+  const minLength = 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*]/.test(password);
+
+  if (password.length < minLength) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+  }
+  if (!hasUppercase) {
+    return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
+  }
+  if (!hasLowercase) {
+    return res.status(400).json({ error: 'Password must contain at least one lowercase letter' });
+  }
+  if (!hasNumber) {
+    return res.status(400).json({ error: 'Password must contain at least one number' });
+  }
+  if (!hasSpecialChar) {
+    return res.status(400).json({ error: 'Password must contain at least one special character' });
+  }
+
+  // Check if user already exists
+  const userExists = await db.collection('users').findOne({ username });
+  if (userExists) {
+    return res.status(400).json({ error: 'Username already exists' });
+  }
+
+  // Hash the password
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+  // Save user to the database
+  await db.collection('users').insertOne({ username, password: hashedPassword });
+  res.status(201).json({ message: 'User created successfully' });
+});
+
+// Login route
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Authenticate the user (set a session variable)
-        req.session.authenticated = true;
-        res.status(200).send('Login successful');
-    } else {
-        res.status(401).json({ error: 'Invalid credentials' });
+  
+    // Find user in the database
+    const user = await db.collection('users').findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
-});
+  
+    // Compare passwords
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+  
+    // Set session after successful login
+    req.session.authenticated = true;
+    req.session.userId = user._id; // Store user ID in session
+    res.status(200).json({ message: 'Login successful' });
+  });
 
 // Logout Route
 app.get('/logout', (req, res) => {
-    req.session.destroy(); // Destroy the session
-    res.redirect('/login.html');
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error logging out' });
+    }
+    res.clearCookie('connect.sid'); // Clear the session cookie
+    res.status(200).json({ message: 'Logout successful' });
+  });
 });
 
 // Check Login Status Route
 app.get('/check-login', (req, res) => {
-    if (req.session && req.session.authenticated) {
-        res.status(200).send('User is logged in');
-    } else {
-        res.status(401).send('User is not logged in');
-    }
+  if (req.session && req.session.authenticated) {
+    res.status(200).send('User is logged in');
+  } else {
+    res.status(401).send('User is not logged in');
+  }
 });
-
 
 // Protect routes that require authentication
 app.get('/', requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/create.html', requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'create.html'));
+  res.sendFile(path.join(__dirname, 'public', 'create.html'));
 });
 
 app.get('/edit.html', requireLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'edit.html'));
+  res.sendFile(path.join(__dirname, 'public', 'edit.html'));
 });
 
 // Serve static files (after authentication middleware)
 app.use(express.static('public'));
+
+// ... (rest of your routes remain unchanged)
+
+// Start the server
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
 
 app.get('/surveys', async (req, res) => {
     console.log('GET /surveys - Request received');
@@ -265,61 +340,17 @@ app.get('/surveys/:id/responses', requireLogin, async (req, res) => {
     }
 });
 
-// Export responses
-/*app.get('/surveys/:id/responses/export', requireLogin, async (req, res) => {
-    const surveyId = req.params.id;
-    const format = req.query.format || 'csv';
-
+app.get('/surveys/:id', async (req, res) => {
     try {
-        // 1. Fetch survey data (both responses and survey structure)
-        const responses = await db.collection('responses')
-            .find({ surveyId })
-            .sort({ timestamp: -1 })
-            .toArray();
-        const survey = await db.collection('surveys').findOne({ _id: new ObjectId(surveyId) }); // Fetch survey structure
-
-        // 2. Format the data
-        const formattedResponses = responses.map(response => {
-            const responseObject = {};
-            response.responses.forEach(page => {
-                page.answers.forEach(answer => {
-                    const component = survey.pages[page.pageIndex].components.find(c => c.type === answer.componentId.split('_')[0]);
-                    const label = component ? component.label : answer.componentId;
-                    responseObject[label] = answer.value;
-                });
-            });
-            return responseObject;
-        });
-
-        // 3. Generate the data based on format
-        let data;
-        switch (format) {
-            case 'csv':
-                // Use a library like json2csv to convert formattedResponses to CSV
-                const { parse } = require('json2csv');
-                data = parse(formattedResponses);
-                res.setHeader('Content-Type', 'text/csv');
-                res.setHeader('Content-Disposition', 'attachment; filename=responses.csv');
-                break;
-            case 'excel':
-                // (Implementation for Excel export using a suitable library)
-                data = convertToExcel(formattedResponses); // Update convertToExcel to handle the new format
-                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                res.setHeader('Content-Disposition', 'attachment; filename=responses.xlsx');
-                break;
-            case 'pdf':
-                // (Implementation for PDF export using a suitable library)
-                data = convertToPDF(formattedResponses); // Update convertToPDF to handle the new format
-                res.setHeader('Content-Type', 'application/pdf');
-                res.setHeader('Content-Disposition', 'attachment; filename=responses.pdf');
-                break;
-        }
-
-        res.send(data);
+      const survey = await Survey.findById(req.params.id);
+      if (!survey) {
+        return res.status(404).json({ error: 'Survey not found' });
+      }
+      res.json(survey); // Ensure this includes the pageName field
     } catch (error) {
-        handleError(res, error, 'Failed to export responses');
+      res.status(500).json({ error: 'Error fetching survey' });
     }
-});*/
+  });
 
 function convertToCSV(responses) {
     // Implement CSV conversion

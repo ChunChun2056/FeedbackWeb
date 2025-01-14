@@ -9,25 +9,18 @@ function addPage() {
   const pageDiv = document.createElement("div");
   pageDiv.classList.add("page-group");
   pageDiv.innerHTML = `
-        <h3>Page ${pageCounter + 1}</h3>
-        <label>Figma URL:</label>
-        <input type="text" name="figmaUrl[]">
-
-        <div class="components-container" id="componentsContainer_page${
-          pageCounter + 1
-        }">
-            </div>
-
-        <button type="button" class="add-component-btn" data-page="${
-          pageCounter + 1
-        }">Add Component</button>
-        <button type="button" class="remove-page-btn">Remove Page</button>
-    `;
+    <h3>Page ${pageCounter + 1}</h3>
+    <label>Page Name:</label>
+    <input type="text" class="page-name" placeholder="Enter page name">
+    <label>Figma URL:</label>
+    <input type="text" name="figmaUrl[]">
+    <div class="components-container" id="componentsContainer_page${pageCounter + 1}"></div>
+    <button type="button" class="add-component-btn" data-page="${pageCounter + 1}">Add Component</button>
+    <button type="button" class="remove-page-btn">Remove Page</button>
+  `;
   pagesContainer.appendChild(pageDiv);
 
-  const componentsContainer = pageDiv.querySelector(
-    `#componentsContainer_page${pageCounter + 1}`
-  );
+  const componentsContainer = pageDiv.querySelector(`#componentsContainer_page${pageCounter + 1}`);
   const addComponentBtn = pageDiv.querySelector(".add-component-btn");
   addComponentBtn.addEventListener("click", () => {
     addComponent(componentsContainer);
@@ -94,32 +87,32 @@ form.addEventListener("submit", async (event) => {
 
   for (let i = 0; i < pagesContainer.children.length; i++) {
     const pageDiv = pagesContainer.children[i];
+    const pageName = pageDiv.querySelector(".page-name").value; // Get page name
     const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
-    const componentsContainer = pageDiv.querySelector(`.components-container`);
+    const componentsContainer = pageDiv.querySelector(".components-container");
     const components = [];
 
     for (let j = 0; j < componentsContainer.children.length; j++) {
       const componentDiv = componentsContainer.children[j];
       const componentType = componentDiv.querySelector(".component-type").value;
-      const componentLabel =
-        componentDiv.querySelector(".component-label").value; // Get label
-      const component = { type: componentType, label: componentLabel }; // Add label to component
+      const componentLabel = componentDiv.querySelector(".component-label").value;
+      const component = { type: componentType, label: componentLabel };
 
       if (componentType === "dropdown") {
         const optionInputs = componentDiv.querySelectorAll(".dropdown-option");
-        component.options = Array.from(optionInputs).map(
-          (input) => input.value
-        );
+        component.options = Array.from(optionInputs).map((input) => input.value);
       }
 
       components.push(component);
     }
 
     pages.push({
+      pageName, // Include page name
       figmaUrl,
       components,
     });
   }
+
   const surveyData = {
     name: surveyName,
     pages: pages,
@@ -136,9 +129,7 @@ form.addEventListener("submit", async (event) => {
 
     if (response.ok) {
       const newSurvey = await response.json();
-      alert(
-        `Survey created with ID: ${newSurvey.id} and unique URL: ${newSurvey.uniqueUrl}`
-      );
+      alert(`Survey created with ID: ${newSurvey.id} and unique URL: ${newSurvey.uniqueUrl}`);
       window.location.href = '/';
     } else {
       alert("Error creating survey");
