@@ -64,75 +64,74 @@
     }
 
     function addComponent(container, componentData) {
-      const componentDiv = document.createElement("div");
-      componentDiv.classList.add("component");
-      componentDiv.innerHTML = `
-                <select class="component-type">
-                    <option value="input">Input Field</option>
-                    <option value="textarea">Text Area</option>
-                    <option value="dropdown">Dropdown</option>
-                </select>
-                <input type="text" class="component-label" placeholder="Component heading" value="${componentData && componentData.label
-          ? componentData.label
-          : ""
-        }">
-                <button type="button" class="add-option-btn" style="display: none;">Add Option</button>
-                <button type="button" class="remove-component-btn">Remove Component</button>
-            `;
+  const componentDiv = document.createElement('div');
+  componentDiv.classList.add('component');
+  componentDiv.innerHTML = `
+    <select class="component-type">
+      <option value="input">Input Field</option>
+      <option value="textarea">Text Area</option>
+      <option value="dropdown">Dropdown</option>
+    </select>
+    <input type="text" class="component-label" placeholder="Component heading" value="${
+      componentData?.label || ''
+    }">
+    <div class="dropdown-options-container" style="display: none;">
+      <div class="options-list"></div>
+      <button type="button" class="add-option-btn">Add Option</button>
+    </div>
+    <button type="button" class="remove-component-btn">Remove Component</button>
+  `;
 
-      const componentTypeSelect =
-        componentDiv.querySelector(".component-type");
-      const addOptionBtn = componentDiv.querySelector(".add-option-btn");
-      const removeComponentBtn = componentDiv.querySelector(
-        ".remove-component-btn"
-      );
-      const componentLabelInput =
-        componentDiv.querySelector(".component-label");
+  const componentTypeSelect = componentDiv.querySelector('.component-type');
+  const dropdownContainer = componentDiv.querySelector('.dropdown-options-container');
+  const optionsList = componentDiv.querySelector('.options-list');
+  const addOptionBtn = componentDiv.querySelector('.add-option-btn');
 
-      if (componentData) {
-        componentTypeSelect.value = componentData.type;
-        componentLabelInput.value = componentData.label || ""; // Set label value
-        if (componentData.type === "dropdown") {
-          addOptionBtn.style.display = "inline-block";
-          componentData.options.forEach((optionValue) => {
-            addOption(componentDiv, optionValue);
-          });
-        }
+  // Set initial component type
+  if (componentData?.type) {
+    componentTypeSelect.value = componentData.type;
+    if (componentData.type === 'dropdown') {
+      dropdownContainer.style.display = 'block';
+      componentData.options?.forEach(option => addOption(optionsList, option));
+    }
+  }
+
+  // Handle component type changes
+  componentTypeSelect.addEventListener('change', () => {
+    if (componentTypeSelect.value === 'dropdown') {
+      dropdownContainer.style.display = 'block';
+      if (optionsList.children.length === 0) {
+        addOption(optionsList); // Add default first option
       }
-
-      componentTypeSelect.addEventListener("change", () => {
-        if (componentTypeSelect.value === "dropdown") {
-          addOptionBtn.style.display = "inline-block";
-        } else {
-          addOptionBtn.style.display = "none";
-          componentDiv
-            .querySelectorAll(".dropdown-option")
-            .forEach((option) => option.remove());
-        }
-      });
-
-      addOptionBtn.addEventListener("click", () => {
-        addOption(componentDiv);
-      });
-
-      removeComponentBtn.addEventListener("click", () => {
-        container.removeChild(componentDiv);
-      });
-
-      container.appendChild(componentDiv);
+    } else {
+      dropdownContainer.style.display = 'none';
+      optionsList.innerHTML = '';
     }
+  });
 
-    function addOption(componentDiv, optionValue = "") {
-      const optionInput = document.createElement("input");
-      optionInput.type = "text";
-      optionInput.placeholder = "Option value";
-      optionInput.classList.add("dropdown-option");
-      optionInput.value = optionValue;
-      componentDiv.insertBefore(
-        optionInput,
-        componentDiv.querySelector(".add-option-btn")
-      );
-    }
+  addOptionBtn.addEventListener('click', () => addOption(optionsList));
+  
+  componentDiv.querySelector('.remove-component-btn').addEventListener('click', () => {
+    container.removeChild(componentDiv);
+  });
+
+  container.appendChild(componentDiv);
+}
+
+function addOption(container, optionValue = '') {
+  const optionDiv = document.createElement('div');
+  optionDiv.classList.add('dropdown-option');
+  optionDiv.innerHTML = `
+    <input type="text" class="option-input" value="${optionValue}" placeholder="Enter option">
+    <button type="button" class="remove-option-btn">×</button>
+  `;
+
+  optionDiv.querySelector('.remove-option-btn').addEventListener('click', () => {
+    container.removeChild(optionDiv);
+  });
+
+  container.appendChild(optionDiv);
+}
 
     addPageButton.addEventListener("click", () => addPage());
 
@@ -166,64 +165,64 @@
     }
 
     form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+      event.preventDefault();
 
-  const surveyName = document.getElementById("surveyName").value;
-  const pages = [];
+      const surveyName = document.getElementById("surveyName").value;
+      const pages = [];
 
-  for (let i = 0; i < pagesContainer.children.length; i++) {
-    const pageDiv = pagesContainer.children[i];
-    const pageName = pageDiv.querySelector(".page-name").value; // Get page name
-    const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
-    const componentsContainer = pageDiv.querySelector(".components-container");
-    const components = [];
+      for (let i = 0; i < pagesContainer.children.length; i++) {
+        const pageDiv = pagesContainer.children[i];
+        const pageName = pageDiv.querySelector(".page-name").value; // Get page name
+        const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
+        const componentsContainer = pageDiv.querySelector(".components-container");
+        const components = [];
 
-    for (let j = 0; j < componentsContainer.children.length; j++) {
-      const componentDiv = componentsContainer.children[j];
-      const componentType = componentDiv.querySelector(".component-type").value;
-      const componentLabel = componentDiv.querySelector(".component-label").value;
-      const component = { type: componentType, label: componentLabel };
+        for (let j = 0; j < componentsContainer.children.length; j++) {
+          const componentDiv = componentsContainer.children[j];
+          const componentType = componentDiv.querySelector(".component-type").value;
+          const componentLabel = componentDiv.querySelector(".component-label").value;
+          const component = { type: componentType, label: componentLabel };
 
-      if (componentType === "dropdown") {
-        const optionInputs = componentDiv.querySelectorAll(".dropdown-option");
-        component.options = Array.from(optionInputs).map((input) => input.value);
+          if (componentType === "dropdown") {
+            const optionInputs = componentDiv.querySelectorAll(".dropdown-option");
+            component.options = Array.from(optionInputs).map((input) => input.value);
+          }
+
+          components.push(component);
+        }
+
+        pages.push({
+          pageName, // Include page name
+          figmaUrl,
+          components,
+        });
       }
 
-      components.push(component);
-    }
+      const surveyData = {
+        name: surveyName,
+        pages: pages,
+      };
 
-    pages.push({
-      pageName, // Include page name
-      figmaUrl,
-      components,
-    });
-  }
+      try {
+        const response = await fetch(`/surveys/${surveyId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(surveyData),
+        });
 
-  const surveyData = {
-    name: surveyName,
-    pages: pages,
-  };
-
-  try {
-    const response = await fetch(`/surveys/${surveyId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(surveyData),
-    });
-
-    if (response.ok) {
-      alert("Survey updated successfully");
-      window.location.href = "/";
-    } else {
-      alert("Error updating survey");
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    alert("Error updating survey");
-  }
-}); // Load survey data when the page loads
+        if (response.ok) {
+          alert("Survey updated successfully");
+          window.location.href = "/";
+        } else {
+          alert("Error updating survey");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error updating survey");
+      }
+    }); // Load survey data when the page loads
 
     loadSurveyData();
   </script>

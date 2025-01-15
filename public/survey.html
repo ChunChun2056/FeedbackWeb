@@ -42,135 +42,145 @@
     }
 
     function displayPage(pageIndex) {
-      if (surveyData && pageIndex >= 0 && pageIndex < surveyData.pages.length) {
-        const page = surveyData.pages[pageIndex];
-        pageContent.innerHTML = "";
+  if (surveyData && pageIndex >= 0 && pageIndex < surveyData.pages.length) {
+    const page = surveyData.pages[pageIndex];
+    pageContent.innerHTML = "";
 
-        // Display the page name
-        const pageNameHeading = document.createElement("h2");
-        pageNameHeading.textContent = page.pageName || `Page ${pageIndex + 1}`; // Fallback to "Page X" if no name is provided
-        pageContent.appendChild(pageNameHeading);
+    // Display the page name
+    const pageNameHeading = document.createElement("h2");
+    pageNameHeading.textContent = page.pageName || `Page ${pageIndex + 1}`;
+    pageContent.appendChild(pageNameHeading);
 
-        if (page.figmaUrl) {
-          const figmaIframe = document.createElement("iframe");
-          figmaIframe.src = page.figmaUrl;
-          figmaIframe.width = "100%";
-          figmaIframe.height = "500px";
-          figmaIframe.allowFullscreen = true;
-          pageContent.appendChild(figmaIframe);
-        }
+    if (page.figmaUrl) {
+      const figmaIframe = document.createElement("iframe");
+      figmaIframe.src = page.figmaUrl;
+      figmaIframe.width = "100%";
+      figmaIframe.height = "500px";
+      figmaIframe.allowFullscreen = true;
+      pageContent.appendChild(figmaIframe);
+    }
 
-        const form = document.createElement("form");
-        form.id = `form_page${pageIndex + 1}`;
+    const form = document.createElement("form");
+    form.id = `form_page${pageIndex + 1}`;
 
-        page.components.forEach((component) => {
-          if (component.label) {
-            const label = document.createElement("label");
-            label.textContent = component.label;
-            form.appendChild(label);
-          }
+    page.components.forEach((component) => {
+      if (component.label) {
+        const label = document.createElement("label");
+        label.textContent = component.label;
+        form.appendChild(label);
+      }
 
-          const inputName = `${component.type}_page${pageIndex + 1}[]`;
-          let input;
+      const inputName = `${component.type}_page${pageIndex + 1}[]`;
+      let input;
 
-          if (component.type === "input") {
-            input = document.createElement("input");
-            input.type = "text";
-          } else if (component.type === "textarea") {
-            input = document.createElement("textarea");
-          } else if (component.type === "dropdown") {
-            input = document.createElement("select");
-            component.options.forEach((optionValue) => {
-              const option = document.createElement("option");
-              option.value = optionValue;
-              option.text = optionValue;
-              input.appendChild(option);
-            });
-          }
+      if (component.type === "input") {
+        input = document.createElement("input");
+        input.type = "text";
+      } else if (component.type === "textarea") {
+        input = document.createElement("textarea");
+      } else if (component.type === "dropdown") {
+        input = document.createElement("select");
 
-          input.name = inputName;
+        // Add default option
+        const defaultOption = document.createElement("option");
+        defaultOption.value = ""; // Empty value for the default option
+        defaultOption.text = "Select an option";
+        defaultOption.disabled = true; // Make it unselectable
+        defaultOption.selected = true; // Set it as the default selected option
+        input.appendChild(defaultOption);
 
-          if (performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
-            const formData = getFormData();
-            if (formData[pageIndex] && formData[pageIndex][inputName]) {
-              input.value = formData[pageIndex][inputName];
-            }
-          }
-
-          input.addEventListener("change", () => {
-            const currentFormData = getFormData();
-            if (!currentFormData[pageIndex]) {
-              currentFormData[pageIndex] = {};
-            }
-            currentFormData[pageIndex][inputName] = input.value;
-            setFormData(currentFormData);
-          });
-
-          form.appendChild(input);
+        // Add other options
+        component.options.forEach((optionValue) => {
+          const option = document.createElement("option");
+          option.value = optionValue;
+          option.text = optionValue;
+          input.appendChild(option);
         });
+      }
 
-        pageContent.appendChild(form);
+      input.name = inputName;
 
-        currentPage = pageIndex;
-        prevPageButton.disabled = currentPage === 0;
-        nextPageButton.disabled = currentPage === surveyData.pages.length - 1;
-        nextPageButton.style.display =
-          currentPage === surveyData.pages.length - 1
-            ? "none"
-            : "inline-block";
-
-        if (currentPage === surveyData.pages.length - 1) {
-          const submitButton = document.createElement("button");
-          submitButton.type = "submit";
-          submitButton.textContent = "Submit Survey";
-          form.appendChild(submitButton);
-
-          form.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            const finalFormData = getFormData();
-
-            const formattedResponses = Object.entries(finalFormData).map(
-              ([pageIndex, pageData]) => ({
-                pageIndex: parseInt(pageIndex),
-                answers: Object.entries(pageData).map(
-                  ([componentId, value]) => ({
-                    componentId,
-                    value,
-                  })
-                ),
-              })
-            );
-
-            try {
-              const response = await fetch(
-                `/surveys/${surveyData._id}/submit`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    responses: formattedResponses,
-                    completed: true,
-                  }),
-                }
-              );
-
-              if (response.ok) {
-                alert("Survey submitted successfully!");
-                clearFormData();
-                window.location.href = "/thankyou.html";
-              } else {
-                alert("Error submitting survey");
-              }
-            } catch (error) {
-              console.error("Error:", error);
-              alert("Error submitting survey");
-            }
-          });
+      if (performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
+        const formData = getFormData();
+        if (formData[pageIndex] && formData[pageIndex][inputName]) {
+          input.value = formData[pageIndex][inputName];
         }
       }
+
+      input.addEventListener("change", () => {
+        const currentFormData = getFormData();
+        if (!currentFormData[pageIndex]) {
+          currentFormData[pageIndex] = {};
+        }
+        currentFormData[pageIndex][inputName] = input.value;
+        setFormData(currentFormData);
+      });
+
+      form.appendChild(input);
+    });
+
+    pageContent.appendChild(form);
+
+    currentPage = pageIndex;
+    prevPageButton.disabled = currentPage === 0;
+    nextPageButton.disabled = currentPage === surveyData.pages.length - 1;
+    nextPageButton.style.display =
+      currentPage === surveyData.pages.length - 1
+        ? "none"
+        : "inline-block";
+
+    if (currentPage === surveyData.pages.length - 1) {
+      const submitButton = document.createElement("button");
+      submitButton.type = "submit";
+      submitButton.textContent = "Submit Survey";
+      form.appendChild(submitButton);
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const finalFormData = getFormData();
+
+        const formattedResponses = Object.entries(finalFormData).map(
+          ([pageIndex, pageData]) => ({
+            pageIndex: parseInt(pageIndex),
+            answers: Object.entries(pageData).map(
+              ([componentId, value]) => ({
+                componentId,
+                value,
+              })
+            ),
+          })
+        );
+
+        try {
+          const response = await fetch(
+            `/surveys/${surveyData._id}/submit`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                responses: formattedResponses,
+                completed: true,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            alert("Survey submitted successfully!");
+            clearFormData();
+            window.location.href = "/thankyou.html";
+          } else {
+            alert("Error submitting survey");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Error submitting survey");
+        }
+      });
     }
+  }
+}
 
     // Clear form data only on page refresh
     window.addEventListener("beforeunload", (event) => {

@@ -1,3 +1,5 @@
+require('dotenv').config(); // Load environment variables from .env file
+
 const express = require('express');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -10,13 +12,14 @@ const app = express();
 
 app.use(express.json());
 
-const uri = 'mongodb://localhost:27017'; // Replace with your MongoDB connection string
-const dbName = 'test'; // Replace with your database name
+// Use environment variables
+const MONGODB_URI = process.env.MONGODB_URI;
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
 // Session Middleware
 app.use(
   session({
-    secret: '', // Replace with a strong secret key
+    secret: SESSION_SECRET, // Use environment variable for session secret
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -31,7 +34,7 @@ app.use(
 // Rate limit for login endpoint
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login requests per windowMs
+  max: 20, // Limit each IP to 5 login requests per windowMs
   message: 'Too many login attempts, please try again later',
 });
 
@@ -40,13 +43,13 @@ app.use('/login', loginLimiter);
 let db;
 
 // Connect to MongoDB
-MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then((client) => {
-    db = client.db(dbName);
-    console.log('Connected to MongoDB');
+    db = client.db('test'); // Replace 'test' with your database name
+    console.log('Connected to MongoDB Atlas');
   })
   .catch((err) => {
-    console.error('Error connecting to MongoDB:', err);
+    console.error('Error connecting to MongoDB Atlas:', err);
   });
 
 function handleError(res, error, message = 'An unexpected error occurred') {
@@ -113,25 +116,44 @@ app.post('/signup', async (req, res) => {
 
 // Login route
 app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-  
-    // Find user in the database
+  const { username, password } = req.body;
+
+  try {
+    // Ensure DB connection
+    if (!db) {
+      console.error('Database connection not established');
+      return res.status(500).json({ error: 'Database connection error' });
+    }
+
+    // Log the search query
+    console.log('Searching for user:', { username });
+
+    // Find user and log full user object
     const user = await db.collection('users').findOne({ username });
+    console.log('Database response:', user);
+
     if (!user) {
+      console.log('User not found in database');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-  
-    // Compare passwords
+
+    // Log password comparison
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password comparison result:', isPasswordValid);
+
     if (!isPasswordValid) {
+      console.log('Invalid password');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-  
-    // Set session after successful login
+
     req.session.authenticated = true;
-    req.session.userId = user._id; // Store user ID in session
+    req.session.userId = user._id;
     res.status(200).json({ message: 'Login successful' });
-  });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'An error occurred during login' });
+  }
+});
 
 // Logout Route
 app.get('/logout', (req, res) => {
@@ -285,25 +307,29 @@ app.delete('/surveys/:id', requireLogin, async (req, res) => {
 
 
 app.get('/survey/:uniqueUrl', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'survey.html'));  // This remains public
+  res.sendFile(path.join(__dirname, 'public', 'survey.html'));
 });
 
 // Public route to access a survey via unique URL
 app.get('/s/:uniqueUrl', async (req, res) => {
-    const uniqueUrl = req.params.uniqueUrl;
-    console.log(`GET /s/${uniqueUrl} - Request received`);
-
-    try {
-        const survey = await db.collection('surveys').findOne({ uniqueUrl: uniqueUrl });
-        if (survey) {
-            res.json(survey);  // Respond with the survey data
-        } else {
-            console.error(`Survey not found - uniqueUrl: ${uniqueUrl}`);
-            res.status(404).send('Survey not found');
-        }
-    } catch (error) {
-        handleError(res, error, 'Failed to fetch survey by uniqueUrl');
-    }
+  const uniqueUrl = req.params.uniqueUrl;
+  
+  try {
+      const survey = await db.collection('surveys').findOne({ uniqueUrl });
+      if (!survey) {
+          return res.status(404).json({ error: 'Survey not found' });
+      }
+      
+      // Ensure required properties exist
+      if (!survey.name || !survey.pages) {
+          return res.status(500).json({ error: 'Invalid survey data structure' });
+      }
+      
+      res.json(survey);
+  } catch (error) {
+      console.error('Error fetching survey:', error);
+      res.status(500).json({ error: 'Failed to fetch survey' });
+  }
 });
 
 // Store response
@@ -374,3 +400,4 @@ app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
     res.status(500).send('Internal Server Error');
 });
+
