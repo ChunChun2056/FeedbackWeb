@@ -268,7 +268,7 @@ app.get('/surveys/:id', requireLogin, async (req, res) => {
 app.put('/surveys/:id', requireLogin, async (req, res) => {
     const surveyId = req.params.id;
     console.log(`PUT /surveys/${surveyId} - Request received`);
-    console.log('Request body:', req.body);
+    console.log('Request body:', req.body); // Debug: Log the request body
 
     try {
         const result = await db.collection('surveys').updateOne(
@@ -281,6 +281,7 @@ app.put('/surveys/:id', requireLogin, async (req, res) => {
             res.status(404).send('Survey not found');
         } else {
             const updatedSurvey = await db.collection('surveys').findOne({ _id: surveyId });
+            console.log('Updated survey:', updatedSurvey); // Debug: Log the updated survey
             res.json(updatedSurvey);
         }
     } catch (error) {
