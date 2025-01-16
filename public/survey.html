@@ -3,25 +3,99 @@
 <head>
     <title>Survey</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Modal styles */
+        #thankYouModal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-content button {
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background-color: #2563eb;
+        }
+
+        /* Message for already submitted */
+        #alreadySubmittedMessage {
+            display: none;
+            text-align: center;
+            margin-top: 2rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container" id="surveyContainer">
-        <div id="pageContent"></div>
+      <div id="pageContent" class="rightSide"></div>
+      <div class="leftSide">
+        <div id ="pageHeader"></div>
+        <div id="pageForm"></div>
         <div id="navigation">
             <button id="prevPage" disabled>Previous</button>
             <button id="nextPage" disabled>Next</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Thank You Modal -->
+    <div id="thankYouModal">
+        <div class="modal-content">
+            <h2>Thank You!</h2>
+            <p>Your response has been recorded.</p>
+            <button id="closeModalButton">Close</button>
+        </div>
+    </div>
+
+    <!-- Message for already submitted -->
+    <div id="alreadySubmittedMessage">
+        <h2>You have already submitted this survey.</h2>
+        <p>Please open the link in a new tab to submit again.</p>
     </div>
 
     <script>
-        const surveyContainer = document.getElementById('surveyContainer');
-        const pageContent = document.getElementById('pageContent');
-        const prevPageButton = document.getElementById('prevPage');
-        const nextPageButton = document.getElementById('nextPage');
+        const surveyContainer = document.getElementById("surveyContainer");
+        const pageContent = document.getElementById("pageContent");
+        const pageForm = document.getElementById("pageForm");
+        const pageHeader = document.getElementById("pageHeader");
+        const prevPageButton = document.getElementById("prevPage");
+        const nextPageButton = document.getElementById("nextPage");
+        const thankYouModal = document.getElementById("thankYouModal");
+        const closeModalButton = document.getElementById("closeModalButton");
+        const alreadySubmittedMessage = document.getElementById("alreadySubmittedMessage");
 
-        const uniqueUrl = window.location.pathname.split('/').pop();
+        const uniqueUrl = window.location.pathname.split("/").pop();
         let currentPage = 0;
         let surveyData = null;
+
+        // Check if the form has already been submitted in this tab
+        if (sessionStorage.getItem(`formSubmitted_${uniqueUrl}`) === 'true') {
+            // Hide the form and show the "already submitted" message
+            surveyContainer.style.display = "none";
+            alreadySubmittedMessage.style.display = "block";
+        }
 
         function getFormData() {
             const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
@@ -39,10 +113,15 @@
         function displayPage(pageIndex) {
             if (surveyData && pageIndex >= 0 && pageIndex < surveyData.pages.length) {
                 const page = surveyData.pages[pageIndex];
-                pageContent.innerHTML = '';
+                pageContent.innerHTML = "";
+
+                // Display the page name
+                const pageNameHeading = document.createElement("h2");
+                pageNameHeading.textContent = page.pageName || `Page ${pageIndex + 1}`;
+                pageHeader.appendChild(pageNameHeading);
 
                 if (page.figmaUrl) {
-                    const figmaIframe = document.createElement('iframe');
+                    const figmaIframe = document.createElement("iframe");
                     figmaIframe.src = page.figmaUrl;
                     figmaIframe.width = "100%";
                     figmaIframe.height = "500px";
@@ -50,32 +129,38 @@
                     pageContent.appendChild(figmaIframe);
                 }
 
-                const form = document.createElement('form');
+                const form = document.createElement("form");
                 form.id = `form_page${pageIndex + 1}`;
 
-                page.components.forEach(component => {
-                    
+                page.components.forEach((component) => {
                     if (component.label) {
-                        const label = document.createElement('label');
+                        const label = document.createElement("label");
                         label.textContent = component.label;
                         form.appendChild(label);
                     }
-                    
+
                     const inputName = `${component.type}_page${pageIndex + 1}[]`;
                     let input;
 
-                    if (component.type === 'input') {
-                        
-                        input = document.createElement('input');
+                    if (component.type === "input") {
+                        input = document.createElement("input");
                         input.type = "text";
-                    } else if (component.type === 'textarea') {
-                        
-                        input = document.createElement('textarea');
-                    } else if (component.type === 'dropdown') {
-                        
-                        input = document.createElement('select');
-                        component.options.forEach(optionValue => {
-                            const option = document.createElement('option');
+                    } else if (component.type === "textarea") {
+                        input = document.createElement("textarea");
+                    } else if (component.type === "dropdown") {
+                        input = document.createElement("select");
+
+                        // Add default option
+                        const defaultOption = document.createElement("option");
+                        defaultOption.value = ""; // Empty value for the default option
+                        defaultOption.text = "Select an option";
+                        defaultOption.disabled = true; // Make it unselectable
+                        defaultOption.selected = true; // Set it as the default selected option
+                        input.appendChild(defaultOption);
+
+                        // Add other options
+                        component.options.forEach((optionValue) => {
+                            const option = document.createElement("option");
                             option.value = optionValue;
                             option.text = optionValue;
                             input.appendChild(option);
@@ -84,7 +169,6 @@
 
                     input.name = inputName;
 
-                    // Check if it's a navigation action or a page load/refresh
                     if (performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
                         const formData = getFormData();
                         if (formData[pageIndex] && formData[pageIndex][inputName]) {
@@ -92,7 +176,7 @@
                         }
                     }
 
-                    input.addEventListener('change', () => {
+                    input.addEventListener("change", () => {
                         const currentFormData = getFormData();
                         if (!currentFormData[pageIndex]) {
                             currentFormData[pageIndex] = {};
@@ -101,73 +185,105 @@
                         setFormData(currentFormData);
                     });
 
-                    
                     form.appendChild(input);
                 });
 
-                pageContent.appendChild(form);
+                pageForm.appendChild(form);
 
                 currentPage = pageIndex;
                 prevPageButton.disabled = currentPage === 0;
                 nextPageButton.disabled = currentPage === surveyData.pages.length - 1;
-                nextPageButton.style.display = currentPage === surveyData.pages.length - 1 ? 'none' : 'inline-block';
+                nextPageButton.style.display =
+                    currentPage === surveyData.pages.length - 1
+                        ? "none"
+                        : "inline-block";
 
                 if (currentPage === surveyData.pages.length - 1) {
-                    const submitButton = document.createElement('button');
+                    const submitButton = document.createElement("button");
                     submitButton.type = "submit";
                     submitButton.textContent = "Submit Survey";
                     form.appendChild(submitButton);
 
-                    form.addEventListener('submit', (event) => {
+                    form.addEventListener("submit", async (event) => {
                         event.preventDefault();
                         const finalFormData = getFormData();
-                        console.log("Final Form Data:", finalFormData);
-                        // Send finalFormData to your server
 
-                        clearFormData(); // Clear data after submission
+                        const formattedResponses = Object.entries(finalFormData).map(
+                            ([pageIndex, pageData]) => ({
+                                pageIndex: parseInt(pageIndex),
+                                answers: Object.entries(pageData).map(
+                                    ([componentId, value]) => ({
+                                        componentId,
+                                        value,
+                                    })
+                                ),
+                            })
+                        );
+
+                        try {
+                            const response = await fetch(
+                                `/surveys/${surveyData._id}/submit`,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        responses: formattedResponses,
+                                        completed: true,
+                                    }),
+                                }
+                            );
+
+                            if (response.ok) {
+                                // Hide the form and show the modal
+                                surveyContainer.style.display = "none";
+                                thankYouModal.style.display = "flex";
+
+                                // Set the form submission flag in sessionStorage
+                                sessionStorage.setItem(`formSubmitted_${uniqueUrl}`, 'true');
+                            } else {
+                                alert("Error submitting survey");
+                            }
+                        } catch (error) {
+                            console.error("Error:", error);
+                            alert("Error submitting survey");
+                        }
                     });
                 }
             }
         }
 
-        // Clear form data only on page refresh
-        window.addEventListener('beforeunload', (event) => {
-            if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
-                clearFormData();
+        // Close modal and attempt to close the tab
+        closeModalButton.addEventListener("click", () => {
+            try {
+                window.close();
+            } catch (e) {
+                console.error("Failed to close the tab:", e);
+                alert("Please close the tab manually.");
             }
         });
 
-        prevPageButton.addEventListener('click', () => {
-            if (currentPage > 0) {
-                displayPage(currentPage - 1);
-            }
-        });
-
-        nextPageButton.addEventListener('click', () => {
-            if (surveyData && currentPage < surveyData.pages.length - 1) {
-                displayPage(currentPage + 1);
-            }
-        });
-
+        // Load survey data
         fetch(`/s/${uniqueUrl}`)
-            .then(response => {
+            .then((response) => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error("Network response was not ok");
                 }
                 return response.json();
             })
-            .then(survey => {
+            .then((survey) => {
                 surveyData = survey;
-                document.title = surveyData.name || 'Survey';
+                document.title = surveyData.name || "Survey";
                 if (surveyData.pages.length > 0) {
                     displayPage(0);
                 } else {
-                    pageContent.innerHTML = '<p>No pages in this survey.</p>';
+                    pageContent.innerHTML = "<p>No pages in this survey.</p>";
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                pageContent.innerHTML = '<p>Error loading survey.</p>';
+            .catch((error) => {
+                console.error("Error:", error);
+                pageContent.innerHTML = "<p>Error loading survey.</p>";
             });
     </script>
 </body>
