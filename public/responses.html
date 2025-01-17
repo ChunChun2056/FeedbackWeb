@@ -1,175 +1,272 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <title>Survey Responses</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .response-grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
 
-<head>
-  <title>Survey Responses</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    .response-grid {
-      display: grid;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
+      .response-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
 
-    .response-card {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
+      .response-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
 
-    .response-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
+      .response-meta {
+        color: #666;
+        font-size: 0.9rem;
+      }
 
-    .response-meta {
-      color: #666;
-      font-size: 0.9rem;
-    }
+      .export-options {
+        margin: 1rem 0;
+        display: flex;
+        gap: 1rem;
+      }
 
-    .export-options {
-      margin: 1rem 0;
-      display: flex;
-      gap: 1rem;
-    }
-
-    .grid-header {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      padding: 1rem;
-      background: #f8fafc;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Survey Responses</h1>
-      <div class="export-options">
-        <button onclick="exportResponses('csv')">Export CSV</button>
-        <button onclick="exportResponses('excel')">Export Excel</button>
-        <button onclick="exportResponses('pdf')">Export PDF</button>
+      .grid-header {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Survey Responses</h1>
+        <div class="export-options">
+          <button onclick="exportResponses('csv')">Export CSV</button>
+          <button onclick="exportResponses('excel')">Export Excel</button>
+          <button onclick="exportResponses('pdf')">Export PDF</button>
+        </div>
       </div>
+
+      <div id="responsesList" class="response-grid"></div>
     </div>
 
-    <div id="responsesList" class="response-grid"></div>
-  </div>
+    <script>
+      const surveyId = new URLSearchParams(window.location.search).get("id");
 
-  <script>
-    const surveyId = new URLSearchParams(window.location.search).get("id");
+      async function loadResponses() {
+        try {
+          const surveyId = new URLSearchParams(window.location.search).get(
+            "id"
+          );
+          const [responsesResponse, surveyDataResponse] = await Promise.all([
+            fetch(`/surveys/${surveyId}/responses`),
+            fetch(`/surveys/${surveyId}`),
+          ]);
 
-    async function loadResponses() {
-  try {
-    const surveyId = new URLSearchParams(window.location.search).get("id");
-    const surveyResponse = await fetch(`/surveys/${surveyId}/responses`);
-    const surveyDataRequest = await fetch(`/surveys/${surveyId}`); // Fetch survey structure
-    if (surveyResponse.ok && surveyDataRequest.ok) {
-      const responses = await surveyResponse.json();
-      const surveyData = await surveyDataRequest.json(); // Parse survey structure
-      displayResponses(responses, surveyData); // Pass survey data to displayResponses
-    } else {
-      console.error("Error fetching responses or survey data");
-    }
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
-
-    function displayResponses(responses, surveyData) {
-      const container = document.getElementById("responsesList");
-      container.innerHTML = "";
-
-      responses.forEach((response) => {
-        const card = document.createElement("div");
-        card.className = "response-card";
-
-        card.innerHTML = `
-                    <div class="response-header">
-                        <div class="response-meta">
-                            Submitted: ${new Date(
-          response.timestamp
-        ).toLocaleString()}
-
-                        </div>
-                    </div>
-                    <div class="response-content">
-                        ${formatResponses(response.responses, surveyData)}
-                    </div>
-                        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    function formatResponses(responses, surveyData) {
-      return responses
-        .map(
-          (page) => `
-        <div class="response-page">
-            <h3>${surveyData.pages[page.pageIndex].pageName || `Page ${page.pageIndex + 1}`}</h3>
-            ${page.answers
-              .map((answer) => {
-                const component = surveyData.pages[
-                  page.pageIndex
-                ].components.find(
-                  (c) => c.type === answer.componentId.split("_")[0]
-                ); // Find the component by type
-                return `
-                    <div>
-                        <strong>${component ? component.label : answer.componentId}:</strong> ${answer.value}
-                    </div>
-                `;
-              })
-              .join("")}
-        </div>
-    `
-        )
-        .join("");
-    }
-
-    async function exportResponses(format) {
-      try {
-        const response = await fetch(
-          `/surveys/${surveyId}/responses/export?format=${format}`
-        );
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `survey-responses.${format}`;
-          a.click();
-        }
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    }
-
-    function checkLoginStatus() {
-      fetch("/check-login")
-        .then((response) => {
-          if (!response.ok) {
-            // Redirect to login if not logged in
-            window.location.href = "/login.html";
+          if (!responsesResponse.ok || !surveyDataResponse.ok) {
+            throw new Error("Failed to fetch responses or survey data");
           }
-        })
-        .catch((error) => {
-          console.error("Error checking login status:", error);
-          // Consider redirecting to login on error as well
-          window.location.href = "/login.html";
+
+          const responses = await responsesResponse.json();
+          const surveyData = await surveyDataResponse.json();
+
+          console.log("Survey Responses:", responses);
+          console.log("Survey Data:", surveyData);
+
+          if (!responses.length) {
+            document.getElementById("responsesList").innerHTML = `
+                <div class="response-card">
+                    <p>No responses yet for this survey.</p>
+                </div>
+            `;
+            return;
+          }
+
+          displayResponses(responses, surveyData);
+        } catch (error) {
+          console.error("Error:", error);
+          document.getElementById("responsesList").innerHTML = `
+            <div class="response-card">
+                <p>Error loading responses: ${error.message}</p>
+            </div>
+        `;
+        }
+      }
+
+      function displayResponses(responses, surveyData) {
+        const container = document.getElementById("responsesList");
+        container.innerHTML = "";
+
+        responses.forEach((response, index) => {
+          const card = document.createElement("div");
+          card.className = "response-card";
+
+          const responseContent = formatResponseContent(response, surveyData);
+
+          card.innerHTML = `
+            <div class="response-header">
+                <h3>Response #${index + 1}</h3>
+                <div class="response-meta">
+                    <span>Submitted: ${new Date(
+                      response.timestamp
+                    ).toLocaleString()}</span>
+                    ${
+                      response.completed
+                        ? '<span class="completed-badge">Completed</span>'
+                        : ""
+                    }
+                </div>
+            </div>
+            <div class="response-content">
+                ${responseContent}
+            </div>
+        `;
+
+          container.appendChild(card);
         });
+      }
+
+      function formatResponseContent(response, surveyData) {
+        if (!response.responses || !Array.isArray(response.responses)) {
+          return "<p>No response data available</p>";
+        }
+
+        return response.responses
+          .map((pageResponse) => {
+            const page = surveyData.pages[pageResponse.pageIndex];
+            if (!page) return "";
+
+            const answers = formatAnswers(
+              pageResponse.answers,
+              page.components
+            );
+
+            return `
+            <div class="response-page">
+                <h4>${
+                  page.pageName || `Page ${pageResponse.pageIndex + 1}`
+                }</h4>
+                ${
+                  pageResponse.description
+                    ? `<p class="page-description">${pageResponse.description}</p>`
+                    : ""
+                }
+                <div class="answers-grid">
+                    ${answers}
+                </div>
+            </div>
+        `;
+          })
+          .join("");
+      }
+
+      function formatAnswers(answers, components) {
+        if (!Array.isArray(answers) || !Array.isArray(components)) {
+          return "<p>No answers available</p>";
+        }
+
+        return answers
+          .map((answer) => {
+            const componentType = answer.componentId.split("_")[0];
+            const component = components.find((c) => c.type === componentType);
+
+            if (!component) return "";
+
+            const value = formatValue(answer.value, component.type);
+
+            return `
+            <div class="answer-item">
+                <strong>${component.label || "Unnamed Component"}:</strong>
+                <span class="answer-value">${value}</span>
+            </div>
+        `;
+          })
+          .join("");
+      }
+
+      function formatValue(value, componentType) {
+        if (value === null || value === undefined) return "No response";
+        if (value === "") return "Empty response";
+
+        switch (componentType) {
+          case "textarea":
+            return value.split("\n").join("<br>");
+          case "dropdown":
+            return `<span class="dropdown-response">${value}</span>`;
+          default:
+            return value;
+        }
+      }
+
+      function checkLoginStatus() {
+        fetch("/check-login")
+          .then((response) => {
+            if (!response.ok) {
+              // Redirect to login if not logged in
+              window.location.href = "/login.html";
+            }
+          })
+          .catch((error) => {
+            console.error("Error checking login status:", error);
+            // Consider redirecting to login on error as well
+            window.location.href = "/login.html";
+          });
+      }
+
+      // Add some additional styles to the page
+const styles = document.createElement('style');
+styles.textContent = `
+    .completed-badge {
+        background: #4CAF50;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        margin-left: 8px;
     }
 
-    loadResponses();
-    setInterval(checkLoginStatus, 30000);
-  </script>
-</body>
+    .answers-grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
 
+    .answer-item {
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .answer-value {
+        display: block;
+        margin-top: 0.25rem;
+    }
+
+    .dropdown-response {
+        color: #2196F3;
+        font-weight: 500;
+    }
+
+    .page-description {
+        color: #666;
+        font-style: italic;
+        margin: 0.5rem 0;
+    }
+`;
+document.head.appendChild(styles);
+
+      loadResponses();
+      setInterval(checkLoginStatus, 30000);
+    </script>
+  </body>
 </html>

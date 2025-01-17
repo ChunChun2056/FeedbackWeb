@@ -1,63 +1,24 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Survey</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Modal styles */
-        #thankYouModal {
-            display: none; /* Hidden by default */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-content button {
-            margin-top: 1rem;
-            padding: 0.75rem 1.5rem;
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .modal-content button:hover {
-            background-color: #2563eb;
-        }
-
-        /* Message for already submitted */
-        #alreadySubmittedMessage {
-            display: none;
-            text-align: center;
-            margin-top: 2rem;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/assets/extra-style-survey.css" />
 </head>
+
 <body>
-    <div class="container" id="surveyContainer">
-      <div id="pageContent" class="rightSide"></div>
-      <div class="leftSide">
-        <div id ="pageHeader"></div>
-        <div id="pageForm"></div>
-        <div id="navigation">
-            <button id="prevPage" disabled>Previous</button>
-            <button id="nextPage" disabled>Next</button>
+    <div class="container grid" id="surveyContainer">
+        <div id="pageContent" class="rightSide"></div>
+        <div class="leftSide">
+            <div id="pageHeader"></div>
+            <div id="pageForm"></div>
+            <div id="navigation">
+                <button id="prevPage" disabled>Previous</button>
+                <button id="nextPage" disabled>Next</button>
+            </div>
         </div>
-      </div>
     </div>
 
     <!-- Thank You Modal -->
@@ -98,9 +59,11 @@
         }
 
         function getFormData() {
-            const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
-            return formDataString ? JSON.parse(formDataString) : {};
-        }
+    const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
+    const formData = formDataString ? JSON.parse(formDataString) : {};
+    console.log("Form Data from sessionStorage:", formData); // Log the form data
+    return formData;
+}
 
         function setFormData(formData) {
             sessionStorage.setItem(`formData_${uniqueUrl}`, JSON.stringify(formData));
@@ -110,7 +73,55 @@
             sessionStorage.removeItem(`formData_${uniqueUrl}`);
         }
 
+        // Save the current page's form data before navigating away
+        function saveCurrentPageData() {
+    const form = pageForm.querySelector("form");
+    if (form) {
+        const formData = getFormData();
+        const inputs = form.querySelectorAll("input, textarea, select");
+
+        inputs.forEach((input) => {
+            // Check if the input belongs to a valid component
+            const componentExists = surveyData.pages[currentPage].components.some(
+                (component) => input.name.startsWith(`${component.type}_page${currentPage + 1}`)
+            );
+
+            if (componentExists) {
+                if (!formData[currentPage]) {
+                    formData[currentPage] = {};
+                }
+                formData[currentPage][input.name] = input.value;
+            }
+        });
+
+        console.log("Saving Form Data for Page", currentPage, ":", formData); // Log the data being saved
+        setFormData(formData);
+    }
+}
+
+        // Load saved data for the current page
+        function loadPageData(pageIndex) {
+            const formData = getFormData();
+            const form = pageForm.querySelector("form");
+
+            if (form && formData[pageIndex]) {
+                const inputs = form.querySelectorAll("input, textarea, select");
+                inputs.forEach((input) => {
+                    if (formData[pageIndex][input.name]) {
+                        input.value = formData[pageIndex][input.name];
+                    }
+                });
+            }
+        }
+
         function displayPage(pageIndex) {
+            // Save the current page's data before navigating
+            saveCurrentPageData();
+
+            // Clear previous content
+            pageHeader.innerHTML = "";
+            pageForm.innerHTML = "";
+
             if (surveyData && pageIndex >= 0 && pageIndex < surveyData.pages.length) {
                 const page = surveyData.pages[pageIndex];
                 pageContent.innerHTML = "";
@@ -119,6 +130,13 @@
                 const pageNameHeading = document.createElement("h2");
                 pageNameHeading.textContent = page.pageName || `Page ${pageIndex + 1}`;
                 pageHeader.appendChild(pageNameHeading);
+
+                // Display the page description
+                if (page.description) {
+                    const pageDescription = document.createElement("p");
+                    pageDescription.textContent = page.description;
+                    pageHeader.appendChild(pageDescription);
+                }
 
                 if (page.figmaUrl) {
                     const figmaIframe = document.createElement("iframe");
@@ -133,62 +151,48 @@
                 form.id = `form_page${pageIndex + 1}`;
 
                 page.components.forEach((component) => {
-                    if (component.label) {
-                        const label = document.createElement("label");
-                        label.textContent = component.label;
-                        form.appendChild(label);
-                    }
+    if (component.label) {
+        const label = document.createElement("label");
+        label.textContent = component.label;
+        form.appendChild(label);
+    }
 
-                    const inputName = `${component.type}_page${pageIndex + 1}[]`;
-                    let input;
+    const inputName = `${component.type}_page${pageIndex + 1}[]`;
+    let input;
 
-                    if (component.type === "input") {
-                        input = document.createElement("input");
-                        input.type = "text";
-                    } else if (component.type === "textarea") {
-                        input = document.createElement("textarea");
-                    } else if (component.type === "dropdown") {
-                        input = document.createElement("select");
+    if (component.type === "input") {
+        input = document.createElement("input");
+        input.type = "text";
+    } else if (component.type === "textarea") {
+        input = document.createElement("textarea");
+    } else if (component.type === "dropdown") {
+        input = document.createElement("select");
 
-                        // Add default option
-                        const defaultOption = document.createElement("option");
-                        defaultOption.value = ""; // Empty value for the default option
-                        defaultOption.text = "Select an option";
-                        defaultOption.disabled = true; // Make it unselectable
-                        defaultOption.selected = true; // Set it as the default selected option
-                        input.appendChild(defaultOption);
+        // Add default option
+        const defaultOption = document.createElement("option");
+        defaultOption.value = ""; // Empty value for the default option
+        defaultOption.text = "Select an option";
+        defaultOption.disabled = true; // Make it unselectable
+        defaultOption.selected = true; // Set it as the default selected option
+        input.appendChild(defaultOption);
 
-                        // Add other options
-                        component.options.forEach((optionValue) => {
-                            const option = document.createElement("option");
-                            option.value = optionValue;
-                            option.text = optionValue;
-                            input.appendChild(option);
-                        });
-                    }
+        // Add other options
+        component.options.forEach((optionValue) => {
+            const option = document.createElement("option");
+            option.value = optionValue;
+            option.text = optionValue;
+            input.appendChild(option);
+        });
+    }
 
-                    input.name = inputName;
-
-                    if (performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
-                        const formData = getFormData();
-                        if (formData[pageIndex] && formData[pageIndex][inputName]) {
-                            input.value = formData[pageIndex][inputName];
-                        }
-                    }
-
-                    input.addEventListener("change", () => {
-                        const currentFormData = getFormData();
-                        if (!currentFormData[pageIndex]) {
-                            currentFormData[pageIndex] = {};
-                        }
-                        currentFormData[pageIndex][inputName] = input.value;
-                        setFormData(currentFormData);
-                    });
-
-                    form.appendChild(input);
-                });
+    input.name = inputName;
+    form.appendChild(input);
+});
 
                 pageForm.appendChild(form);
+
+                // Load saved data for the current page
+                loadPageData(pageIndex);
 
                 currentPage = pageIndex;
                 prevPageButton.disabled = currentPage === 0;
@@ -205,55 +209,64 @@
                     form.appendChild(submitButton);
 
                     form.addEventListener("submit", async (event) => {
-                        event.preventDefault();
-                        const finalFormData = getFormData();
+    event.preventDefault(); // Prevent the form from reloading the page
 
-                        const formattedResponses = Object.entries(finalFormData).map(
-                            ([pageIndex, pageData]) => ({
-                                pageIndex: parseInt(pageIndex),
-                                answers: Object.entries(pageData).map(
-                                    ([componentId, value]) => ({
-                                        componentId,
-                                        value,
-                                    })
-                                ),
-                            })
-                        );
+    // Save the current page's data before submission
+    saveCurrentPageData();
 
-                        try {
-                            const response = await fetch(
-                                `/surveys/${surveyData._id}/submit`,
-                                {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                        responses: formattedResponses,
-                                        completed: true,
-                                    }),
-                                }
-                            );
+    const finalFormData = getFormData();
 
-                            if (response.ok) {
-                                // Hide the form and show the modal
-                                surveyContainer.style.display = "none";
-                                thankYouModal.style.display = "flex";
+    // Format the responses
+    const formattedResponses = Object.entries(finalFormData).map(
+        ([pageIndex, pageData]) => ({
+            pageIndex: parseInt(pageIndex),
+            description: surveyData.pages[pageIndex].description || '', // Include description
+            answers: Object.entries(pageData).map(
+                ([componentId, value]) => ({
+                    componentId,
+                    value,
+                })
+            ),
+        })
+    );
 
-                                // Set the form submission flag in sessionStorage
-                                sessionStorage.setItem(`formSubmitted_${uniqueUrl}`, 'true');
-                            } else {
-                                alert("Error submitting survey");
-                            }
-                        } catch (error) {
-                            console.error("Error:", error);
-                            alert("Error submitting survey");
-                        }
-                    });
+    console.log("Formatted Responses:", formattedResponses); // Log the data being sent
+
+    try {
+        const response = await fetch(
+            `/surveys/${surveyData._id}/submit`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    responses: formattedResponses,
+                    completed: true,
+                }),
+            }
+        );
+
+        if (response.ok) {
+            // Hide the form and show the modal
+            surveyContainer.style.display = "none";
+            thankYouModal.style.display = "flex";
+
+            // Set the form submission flag in sessionStorage
+            sessionStorage.setItem(`formSubmitted_${uniqueUrl}`, 'true');
+            sessionStorage.removeItem(`formData_${uniqueUrl}`);
+        } else {
+            console.error("Error response:", await response.text());
+            alert("Error submitting survey");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error submitting survey");
+    }
+});
                 }
             }
         }
-
         // Close modal and attempt to close the tab
         closeModalButton.addEventListener("click", () => {
             try {
@@ -285,6 +298,24 @@
                 console.error("Error:", error);
                 pageContent.innerHTML = "<p>Error loading survey.</p>";
             });
+
+        // Add event listeners for next and previous buttons
+        nextPageButton.addEventListener("click", () => {
+    if (currentPage < surveyData.pages.length - 1) {
+        saveCurrentPageData(); // Save current page data before navigating
+        currentPage++;
+        displayPage(currentPage);
+    }
+});
+
+prevPageButton.addEventListener("click", () => {
+    if (currentPage > 0) {
+        saveCurrentPageData(); // Save current page data before navigating
+        currentPage--;
+        displayPage(currentPage);
+    }
+});
     </script>
 </body>
+
 </html>

@@ -1,0 +1,66 @@
+form {
+  display: flex !important;
+  flex-direction: column !important;
+  /* gap: 16px; */
+}
+
+form label {
+  margin-bottom: 8px !important;
+}
+
+form button {
+  margin-top: 32px !important;
+}
+
+div#surveyContainer {
+  height: 100vh;
+}
+
+iframe {
+  height: 100%;
+}
+
+/* Modal styles */
+#thankYouModal {
+  display: none;
+  /* Hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  /* Semi-transparent background */
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: #343434;
+  padding: 2rem;
+  width: 600px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background-color: #2563eb;
+}
+
+/* Message for already submitted */
+#alreadySubmittedMessage {
+  display: none;
+  text-align: center;
+  margin-top: 2rem;
+}

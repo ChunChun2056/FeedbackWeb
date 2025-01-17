@@ -5,30 +5,38 @@ const surveyList = document.getElementById('surveyList');
 
 let pageCounter = 0;
 
-function addPage() {
+function addPage(pageData) {
   const pageDiv = document.createElement('div');
   pageDiv.classList.add('page-group');
   pageDiv.innerHTML = `
-    <h3>Page ${pageCounter + 1}</h3>
-    <label>Page Name:</label>
-    <input type="text" class="page-name" placeholder="Enter page name">
-    <label>Figma URL:</label>
-    <input type="text" name="figmaUrl[]">
-    <div class="components-container" id="componentsContainer_page${pageCounter + 1}"></div>
-    <button type="button" class="add-component-btn" data-page="${pageCounter + 1}">Add Component</button>
-    <button type="button" class="remove-page-btn">Remove Page</button>
+      <h3>Page ${pageCounter + 1}</h3>
+      <label>Page Name:</label>
+      <input type="text" class="page-name" placeholder="Enter page name" value="${pageData?.pageName || ''}">
+      <label>Page Description:</label>
+      <textarea class="page-description" placeholder="Enter page description">${pageData?.description || ''}</textarea>
+      <label>Figma URL:</label>
+      <input type="text" name="figmaUrl[]" value="${pageData?.figmaUrl || ''}">
+      <div class="components-container" id="componentsContainer_page${pageCounter + 1}"></div>
+      <button type="button" class="add-component-btn" data-page="${pageCounter + 1}">Add Component</button>
+      <button type="button" class="remove-page-btn">Remove Page</button>
   `;
   pagesContainer.appendChild(pageDiv);
 
   const componentsContainer = pageDiv.querySelector(`#componentsContainer_page${pageCounter + 1}`);
   const addComponentBtn = pageDiv.querySelector('.add-component-btn');
   addComponentBtn.addEventListener('click', () => {
-    addComponent(componentsContainer);
+      addComponent(componentsContainer);
   });
+
+  if (pageData && pageData.components) {
+      pageData.components.forEach((componentData) => {
+          addComponent(componentsContainer, componentData);
+      });
+  }
 
   const removePageBtn = pageDiv.querySelector('.remove-page-btn');
   removePageBtn.addEventListener('click', () => {
-    pagesContainer.removeChild(pageDiv);
+      pagesContainer.removeChild(pageDiv);
   });
 
   pageCounter++;
@@ -144,61 +152,63 @@ form.addEventListener('submit', async (event) => {
   const pages = [];
 
   for (let i = 0; i < pagesContainer.children.length; i++) {
-    const pageDiv = pagesContainer.children[i];
-    const pageName = pageDiv.querySelector('.page-name').value || `Page ${i + 1}`;
-    const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
-    const componentsContainer = pageDiv.querySelector('.components-container');
-    const components = [];
+      const pageDiv = pagesContainer.children[i];
+      const pageName = pageDiv.querySelector('.page-name').value || `Page ${i + 1}`;
+      const pageDescription = pageDiv.querySelector('.page-description').value || ''; // Get description
+      const figmaUrl = pageDiv.querySelector('input[name="figmaUrl[]"]').value;
+      const componentsContainer = pageDiv.querySelector('.components-container');
+      const components = [];
 
-    for (let j = 0; j < componentsContainer.children.length; j++) {
-      const componentDiv = componentsContainer.children[j];
-      const componentType = componentDiv.querySelector('.component-type').value;
-      const componentLabel = componentDiv.querySelector('.component-label').value || `Component ${j + 1}`;
-      const component = { type: componentType, label: componentLabel };
+      for (let j = 0; j < componentsContainer.children.length; j++) {
+          const componentDiv = componentsContainer.children[j];
+          const componentType = componentDiv.querySelector('.component-type').value;
+          const componentLabel = componentDiv.querySelector('.component-label').value || `Component ${j + 1}`;
+          const component = { type: componentType, label: componentLabel };
 
-      if (componentType === 'dropdown') {
-        const optionInputs = componentDiv.querySelectorAll('.option-input');
-        component.options = Array.from(optionInputs).map(input => input.value);
+          if (componentType === 'dropdown') {
+              const optionInputs = componentDiv.querySelectorAll('.option-input');
+              component.options = Array.from(optionInputs).map(input => input.value);
+          }
+
+          components.push(component);
       }
 
-      components.push(component);
-    }
-
-    pages.push({
-      pageName,
-      figmaUrl,
-      components,
-    });
+      pages.push({
+          pageName,
+          description: pageDescription, // Add description to the page object
+          figmaUrl,
+          components,
+      });
   }
 
   const surveyData = {
-    name: surveyName || 'Untitled Survey',
-    pages: pages,
+      name: surveyName || 'Untitled Survey',
+      pages: pages,
   };
 
   console.log('Survey data being submitted:', surveyData);
 
   try {
-    const response = await fetch('/surveys', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(surveyData),
-    });
+      const response = await fetch('/surveys', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(surveyData),
+      });
 
-    if (response.ok) {
-      const newSurvey = await response.json();
-      console.log('Survey created:', newSurvey);
-      alert(`Survey created with ID: ${newSurvey._id} and unique URL: ${newSurvey.uniqueUrl}`);
-      window.location.href = '/';
-    } else {
-      console.error('Error response:', await response.text());
-      alert('Error creating survey');
-    }
+      if (response.ok) {
+          const newSurvey = await response.json();
+          console.log('Survey created:', newSurvey);
+          alert(`Survey created with ID: ${newSurvey._id} and unique URL: ${newSurvey.uniqueUrl}`);
+          window.location.href = '/';
+      } else {
+          console.error('Error response:', await response.text());
+          alert('Error creating survey');
+      }
   } catch (error) {
-    console.error('Error:', error);
-    alert('Error creating survey');
+      console.error('Error:', error);
+      alert('Error creating survey');
   }
 });
 

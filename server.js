@@ -335,36 +335,39 @@ app.get('/s/:uniqueUrl', async (req, res) => {
 
 // Store response
 app.post('/surveys/:id/submit', async (req, res) => {
-    const surveyId = req.params.id;
-    const responseData = {
-        surveyId,
-        timestamp: new Date(),
-        responses: req.body.responses,
-        completed: req.body.completed,
-        version: 1
-    };
+  const surveyId = req.params.id;
+  const responseData = {
+      surveyId,
+      timestamp: new Date(),
+      responses: req.body.responses, // Ensure this is correctly populated
+      completed: req.body.completed,
+      version: 1
+  };
 
-    try {
-        await db.collection('responses').insertOne(responseData);
-        res.status(201).json({ message: 'Response recorded' });
-    } catch (error) {
-        handleError(res, error, 'Failed to store response');
-    }
+  console.log("Received Response Data:", responseData); // Log the incoming data
+
+  try {
+      await db.collection('responses').insertOne(responseData);
+      res.status(201).json({ message: 'Response recorded' });
+  } catch (error) {
+      console.error("Error storing response:", error);
+      res.status(500).json({ error: 'Failed to store response' });
+  }
 });
 
 // Get responses for a survey
 app.get('/surveys/:id/responses', requireLogin, async (req, res) => {
-    const surveyId = req.params.id;
-    
-    try {
-        const responses = await db.collection('responses')
-            .find({ surveyId })
-            .sort({ timestamp: -1 })
-            .toArray();
-        res.json(responses);
-    } catch (error) {
-        handleError(res, error, 'Failed to fetch responses');
-    }
+  const surveyId = req.params.id;
+  
+  try {
+      const responses = await db.collection('responses')
+          .find({ surveyId })
+          .sort({ timestamp: -1 }) // Sort by timestamp in descending order
+          .toArray();
+      res.json(responses);
+  } catch (error) {
+      handleError(res, error, 'Failed to fetch responses');
+  }
 });
 
 app.get('/surveys/:id', async (req, res) => {

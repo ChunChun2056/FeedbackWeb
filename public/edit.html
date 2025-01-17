@@ -29,39 +29,41 @@
     let pageCounter = 0;
 
     function addPage(pageData) {
-      const pageDiv = document.createElement("div");
-      pageDiv.classList.add("page-group");
-      pageDiv.innerHTML = `
+    const pageDiv = document.createElement('div');
+    pageDiv.classList.add('page-group');
+    pageDiv.innerHTML = `
         <h3>Page ${pageCounter + 1}</h3>
         <label>Page Name:</label>
-        <input type="text" class="page-name" placeholder="Enter page name" value="${pageData && pageData.pageName ? pageData.pageName : ''}">
+        <input type="text" class="page-name" placeholder="Enter page name" value="${pageData?.pageName || ''}">
+        <label>Page Description:</label>
+        <textarea class="page-description" placeholder="Enter page description">${pageData?.description || ''}</textarea>
         <label>Figma URL:</label>
-        <input type="text" name="figmaUrl[]" value="${pageData && pageData.figmaUrl ? pageData.figmaUrl : ''}">
+        <input type="text" name="figmaUrl[]" value="${pageData?.figmaUrl || ''}">
         <div class="components-container" id="componentsContainer_page${pageCounter + 1}"></div>
         <button type="button" class="add-component-btn" data-page="${pageCounter + 1}">Add Component</button>
         <button type="button" class="remove-page-btn">Remove Page</button>
-      `;
-      pagesContainer.appendChild(pageDiv);
+    `;
+    pagesContainer.appendChild(pageDiv);
 
-      const componentsContainer = pageDiv.querySelector(`#componentsContainer_page${pageCounter + 1}`);
-      const addComponentBtn = pageDiv.querySelector(".add-component-btn");
-      addComponentBtn.addEventListener("click", () => {
+    const componentsContainer = pageDiv.querySelector(`#componentsContainer_page${pageCounter + 1}`);
+    const addComponentBtn = pageDiv.querySelector('.add-component-btn');
+    addComponentBtn.addEventListener('click', () => {
         addComponent(componentsContainer);
-      });
+    });
 
-      if (pageData && pageData.components) {
+    if (pageData && pageData.components) {
         pageData.components.forEach((componentData) => {
-          addComponent(componentsContainer, componentData);
+            addComponent(componentsContainer, componentData);
         });
-      }
-
-      const removePageBtn = pageDiv.querySelector(".remove-page-btn");
-      removePageBtn.addEventListener("click", () => {
-        pagesContainer.removeChild(pageDiv);
-      });
-
-      pageCounter++;
     }
+
+    const removePageBtn = pageDiv.querySelector('.remove-page-btn');
+    removePageBtn.addEventListener('click', () => {
+        pagesContainer.removeChild(pageDiv);
+    });
+
+    pageCounter++;
+}
 
     function addComponent(container, componentData) {
     const componentDiv = document.createElement('div');
