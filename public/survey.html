@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 
 <head>
     <title>Survey</title>
@@ -9,13 +9,34 @@
 </head>
 
 <body>
+    <!-- Welcome Screen -->
+    <div class="welcome-parent">
+        <div id="welcomeScreen" class="welcome-screen">
+            <h1>Welcome to the [Survey Name] Survey!</h1>
+            <p>Thank you for participating in our survey. Before you begin, <i>please take a moment to note the
+                    following:</i></p>
+            <blockquote>
+                <ul>
+                    <li>On the left side of the screen, you will see a Figma prototype. Please wait a few moments for it
+                        to load completely.</li>
+                    <li>If the prototype does not load, you can try and refresh the page.</li>
+                    <li>On the right side, you will find instructions to guide you through the survey process.</li>
+                </ul>
+            </blockquote>
+            <p>Please follow the instructions carefully as you interact with the prototype. If you have any questions or
+                encounter any issues, feel free to reach out for assistance.</p>
+            <p>Thank you for your time and input—it is greatly appreciated!</p>
+            <button id="getStartedButton">Get Started</button>
+        </div>
+    </div>
+
     <div class="container grid" id="surveyContainer">
         <div id="pageContent" class="rightSide"></div>
         <div class="leftSide">
             <div id="pageHeader"></div>
             <div id="pageForm"></div>
             <div id="navigation">
-                <button id="prevPage" disabled>Previous</button>
+                <button id="prevPage" disabled>Go Back</button>
                 <button id="nextPage" disabled>Next</button>
             </div>
         </div>
@@ -26,7 +47,7 @@
         <div class="modal-content">
             <h2>Thank You!</h2>
             <p>Your response has been recorded.</p>
-            <button id="closeModalButton">Close</button>
+            <p>You can now close the tab.</p>
         </div>
     </div>
 
@@ -38,6 +59,8 @@
 
     <script>
         const surveyContainer = document.getElementById("surveyContainer");
+        const welcomeScreen = document.getElementById("welcomeScreen");
+        const getStartedButton = document.getElementById("getStartedButton");
         const pageContent = document.getElementById("pageContent");
         const pageForm = document.getElementById("pageForm");
         const pageHeader = document.getElementById("pageHeader");
@@ -51,6 +74,19 @@
         let currentPage = 0;
         let surveyData = null;
 
+        // Hide the survey container initially
+        surveyContainer.style.display = "none";
+
+        // Show the welcome screen when the page loads
+        welcomeScreen.style.display = "block";
+
+        // When the user clicks "Get Started," hide the welcome screen and show the survey container
+        getStartedButton.addEventListener("click", () => {
+            welcomeScreen.style.display = "none";
+            surveyContainer.style.display = "grid"; // or "block" depending on your layout
+            displayPage(0); // Start the survey from the first page
+        });
+
         // Check if the form has already been submitted in this tab
         if (sessionStorage.getItem(`formSubmitted_${uniqueUrl}`) === 'true') {
             // Hide the form and show the "already submitted" message
@@ -59,11 +95,11 @@
         }
 
         function getFormData() {
-    const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
-    const formData = formDataString ? JSON.parse(formDataString) : {};
-    console.log("Form Data from sessionStorage:", formData); // Log the form data
-    return formData;
-}
+            const formDataString = sessionStorage.getItem(`formData_${uniqueUrl}`);
+            const formData = formDataString ? JSON.parse(formDataString) : {};
+            console.log("Form Data from sessionStorage:", formData); // Log the form data
+            return formData;
+        }
 
         function setFormData(formData) {
             sessionStorage.setItem(`formData_${uniqueUrl}`, JSON.stringify(formData));
@@ -75,29 +111,29 @@
 
         // Save the current page's form data before navigating away
         function saveCurrentPageData() {
-    const form = pageForm.querySelector("form");
-    if (form) {
-        const formData = getFormData();
-        const inputs = form.querySelectorAll("input, textarea, select");
+            const form = pageForm.querySelector("form");
+            if (form) {
+                const formData = getFormData();
+                const inputs = form.querySelectorAll("input, textarea, select");
 
-        inputs.forEach((input) => {
-            // Check if the input belongs to a valid component
-            const componentExists = surveyData.pages[currentPage].components.some(
-                (component) => input.name.startsWith(`${component.type}_page${currentPage + 1}`)
-            );
+                inputs.forEach((input) => {
+                    // Check if the input belongs to a valid component
+                    const componentExists = surveyData.pages[currentPage].components.some(
+                        (component) => input.name.startsWith(`${component.type}_page${currentPage + 1}`)
+                    );
 
-            if (componentExists) {
-                if (!formData[currentPage]) {
-                    formData[currentPage] = {};
-                }
-                formData[currentPage][input.name] = input.value;
+                    if (componentExists) {
+                        if (!formData[currentPage]) {
+                            formData[currentPage] = {};
+                        }
+                        formData[currentPage][input.name] = input.value;
+                    }
+                });
+
+                console.log("Saving Form Data for Page", currentPage, ":", formData); // Log the data being saved
+                setFormData(formData);
             }
-        });
-
-        console.log("Saving Form Data for Page", currentPage, ":", formData); // Log the data being saved
-        setFormData(formData);
-    }
-}
+        }
 
         // Load saved data for the current page
         function loadPageData(pageIndex) {
@@ -151,43 +187,43 @@
                 form.id = `form_page${pageIndex + 1}`;
 
                 page.components.forEach((component) => {
-    if (component.label) {
-        const label = document.createElement("label");
-        label.textContent = component.label;
-        form.appendChild(label);
-    }
+                    if (component.label) {
+                        const label = document.createElement("label");
+                        label.textContent = component.label;
+                        form.appendChild(label);
+                    }
 
-    const inputName = `${component.type}_page${pageIndex + 1}[]`;
-    let input;
+                    const inputName = `${component.type}_page${pageIndex + 1}[]`;
+                    let input;
 
-    if (component.type === "input") {
-        input = document.createElement("input");
-        input.type = "text";
-    } else if (component.type === "textarea") {
-        input = document.createElement("textarea");
-    } else if (component.type === "dropdown") {
-        input = document.createElement("select");
+                    if (component.type === "input") {
+                        input = document.createElement("input");
+                        input.type = "text";
+                    } else if (component.type === "textarea") {
+                        input = document.createElement("textarea");
+                    } else if (component.type === "dropdown") {
+                        input = document.createElement("select");
 
-        // Add default option
-        const defaultOption = document.createElement("option");
-        defaultOption.value = ""; // Empty value for the default option
-        defaultOption.text = "Select an option";
-        defaultOption.disabled = true; // Make it unselectable
-        defaultOption.selected = true; // Set it as the default selected option
-        input.appendChild(defaultOption);
+                        // Add default option
+                        const defaultOption = document.createElement("option");
+                        defaultOption.value = ""; // Empty value for the default option
+                        defaultOption.text = "Select an option";
+                        defaultOption.disabled = true; // Make it unselectable
+                        defaultOption.selected = true; // Set it as the default selected option
+                        input.appendChild(defaultOption);
 
-        // Add other options
-        component.options.forEach((optionValue) => {
-            const option = document.createElement("option");
-            option.value = optionValue;
-            option.text = optionValue;
-            input.appendChild(option);
-        });
-    }
+                        // Add other options
+                        component.options.forEach((optionValue) => {
+                            const option = document.createElement("option");
+                            option.value = optionValue;
+                            option.text = optionValue;
+                            input.appendChild(option);
+                        });
+                    }
 
-    input.name = inputName;
-    form.appendChild(input);
-});
+                    input.name = inputName;
+                    form.appendChild(input);
+                });
 
                 pageForm.appendChild(form);
 
@@ -209,73 +245,73 @@
                     form.appendChild(submitButton);
 
                     form.addEventListener("submit", async (event) => {
-    event.preventDefault(); // Prevent the form from reloading the page
+                        event.preventDefault(); // Prevent the form from reloading the page
 
-    // Save the current page's data before submission
-    saveCurrentPageData();
+                        // Save the current page's data before submission
+                        saveCurrentPageData();
 
-    const finalFormData = getFormData();
+                        const finalFormData = getFormData();
 
-    // Format the responses
-    const formattedResponses = Object.entries(finalFormData).map(
-        ([pageIndex, pageData]) => ({
-            pageIndex: parseInt(pageIndex),
-            description: surveyData.pages[pageIndex].description || '', // Include description
-            answers: Object.entries(pageData).map(
-                ([componentId, value]) => ({
-                    componentId,
-                    value,
-                })
-            ),
-        })
-    );
+                        // Format the responses
+                        const formattedResponses = Object.entries(finalFormData).map(
+                            ([pageIndex, pageData]) => ({
+                                pageIndex: parseInt(pageIndex),
+                                description: surveyData.pages[pageIndex].description || '', // Include description
+                                answers: Object.entries(pageData).map(
+                                    ([componentId, value]) => ({
+                                        componentId,
+                                        value,
+                                    })
+                                ),
+                            })
+                        );
 
-    console.log("Formatted Responses:", formattedResponses); // Log the data being sent
+                        console.log("Formatted Responses:", formattedResponses); // Log the data being sent
 
-    try {
-        const response = await fetch(
-            `/surveys/${surveyData._id}/submit`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    responses: formattedResponses,
-                    completed: true,
-                }),
-            }
-        );
+                        try {
+                            const response = await fetch(
+                                `/surveys/${surveyData._id}/submit`,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        responses: formattedResponses,
+                                        completed: true,
+                                    }),
+                                }
+                            );
 
-        if (response.ok) {
-            // Hide the form and show the modal
-            surveyContainer.style.display = "none";
-            thankYouModal.style.display = "flex";
+                            if (response.ok) {
+                                // Hide the form and show the modal
+                                surveyContainer.style.display = "none";
+                                thankYouModal.style.display = "flex";
 
-            // Set the form submission flag in sessionStorage
-            sessionStorage.setItem(`formSubmitted_${uniqueUrl}`, 'true');
-            sessionStorage.removeItem(`formData_${uniqueUrl}`);
-        } else {
-            console.error("Error response:", await response.text());
-            alert("Error submitting survey");
-        }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Error submitting survey");
-    }
-});
+                                // Set the form submission flag in sessionStorage
+                                sessionStorage.setItem(`formSubmitted_${uniqueUrl}`, 'true');
+                                sessionStorage.removeItem(`formData_${uniqueUrl}`);
+                            } else {
+                                console.error("Error response:", await response.text());
+                                alert("Error submitting survey");
+                            }
+                        } catch (error) {
+                            console.error("Error:", error);
+                            alert("Error submitting survey");
+                        }
+                    });
                 }
             }
         }
-        // Close modal and attempt to close the tab
-        closeModalButton.addEventListener("click", () => {
-            try {
-                window.close();
-            } catch (e) {
-                console.error("Failed to close the tab:", e);
-                alert("Please close the tab manually.");
-            }
-        });
+        // // Close modal and attempt to close the tab
+        // closeModalButton.addEventListener("click", () => {
+        //     try {
+        //         window.close();
+        //     } catch (e) {
+        //         console.error("Failed to close the tab:", e);
+        //         alert("Please close the tab manually.");
+        //     }
+        // });
 
         // Load survey data
         fetch(`/s/${uniqueUrl}`)
@@ -288,8 +324,15 @@
             .then((survey) => {
                 surveyData = survey;
                 document.title = surveyData.name || "Survey";
+
+                // Update the welcome screen with the survey name
+                const welcomeHeading = document.querySelector("#welcomeScreen h1");
+                if (welcomeHeading) {
+                    welcomeHeading.textContent = `Welcome to the ${surveyData.name} Survey!`;
+                }
+
                 if (surveyData.pages.length > 0) {
-                    displayPage(0);
+                    // displayPage(0); // This will be called after the user clicks "Get Started"
                 } else {
                     pageContent.innerHTML = "<p>No pages in this survey.</p>";
                 }
@@ -301,20 +344,20 @@
 
         // Add event listeners for next and previous buttons
         nextPageButton.addEventListener("click", () => {
-    if (currentPage < surveyData.pages.length - 1) {
-        saveCurrentPageData(); // Save current page data before navigating
-        currentPage++;
-        displayPage(currentPage);
-    }
-});
+            if (currentPage < surveyData.pages.length - 1) {
+                saveCurrentPageData(); // Save current page data before navigating
+                currentPage++;
+                displayPage(currentPage);
+            }
+        });
 
-prevPageButton.addEventListener("click", () => {
-    if (currentPage > 0) {
-        saveCurrentPageData(); // Save current page data before navigating
-        currentPage--;
-        displayPage(currentPage);
-    }
-});
+        prevPageButton.addEventListener("click", () => {
+            if (currentPage > 0) {
+                saveCurrentPageData(); // Save current page data before navigating
+                currentPage--;
+                displayPage(currentPage);
+            }
+        });
     </script>
 </body>
 
